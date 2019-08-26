@@ -92,15 +92,16 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     
     OperandSpecifications opSpec;
 
-    public static final TypeMapBase TYPE_MAP = new TypeMapHybrid();
+    public static TypeMapBase TYPE_MAP;
     
     public TypeCheckVisitor() {
         init(TypeCheckVisitor.class, new DefaultVisitor());
     }
 
-    public void start(Tree<?> node, OperandSpecifications opSpec) {
+    public void start(Tree<?> node, OperandSpecifications opSpec, TypeMapBase typeMap) {
         this.opSpec = opSpec;
         try {
+            TYPE_MAP = typeMap;
             TypeMapBase dict = TYPE_MAP.clone();
             matchStack = new MatchStack();
             for (Tree<?> chunk : node) {

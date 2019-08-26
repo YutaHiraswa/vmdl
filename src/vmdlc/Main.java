@@ -29,6 +29,13 @@ public class Main {
     static String dataTypeDefFile;
     static String vmdlGrammarFile;
     static String operandSpecFile;
+    static int typeMapIndex = 1;
+
+    static final TypeMapBase[] TYPE_MAPS = {
+        new TypeMapLub(),
+        new TypeMapHybrid(),
+        new TypeMapFull()
+    };
     
     static void parseOption(String[] args) {
         for (int i = 0; i < args.length; ) {
@@ -44,6 +51,9 @@ public class Main {
             else if (opt.equals("-r")) {
                 int seed = Integer.parseInt(args[i++]);
                 DispatchProcessor.srand(seed);
+            } else if(opt.matches("-T.")){
+                Integer num = Integer.parseInt(opt.substring(2));
+                typeMapIndex = num;
             } else {
                 sourceFile = opt;
                 break;
@@ -57,6 +67,10 @@ public class Main {
             System.out.println("   -g file   Nez grammar file (default: ejsdl.nez in jar file)");
             System.out.println("   -no-match-opt  disable optimisation for match statement");
             System.out.println("   -r n      set random seed of dispatch processor");
+            System.out.println("   -TX       switch TypeMap class");
+            System.out.println("               -T1: TypeMapLub");
+            System.out.println("               -T2: TypeMapHybrid");
+            System.out.println("               -T3: TypeMapFull");
             System.exit(1);
         }
     }
@@ -109,7 +123,7 @@ public class Main {
         
         new DesugarVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true);
-        new TypeCheckVisitor().start(ast, opSpec);
+        new TypeCheckVisitor().start(ast, opSpec, TYPE_MAPS[typeMapIndex-1]);
         String program = new AstToCVisitor().start(ast);
         
         System.out.println(program);
