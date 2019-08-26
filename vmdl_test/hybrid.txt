@@ -1,0 +1,21 @@
+/* [{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, v1=Number, v2=JSValue, toFlonum=JSValue->Flonum}, {toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, v1=Fixnum, v2=JSValue, toFlonum=JSValue->Flonum}] */
+MATCH_HEAD_f_topAT6:Lf_topAT6_0:{
+  if ((0<v1)) {
+      v2 = toFixnum(v2);
+  }
+  else {
+      v2 = toFlonum(v2);
+  }
+{
+JSValue tmp0 = v2;
+v1 = tmp0;
+goto MATCH_HEAD_f_topAT6;
+}
+}
+/* Local Variables: */
+/* mode: c */
+/* c-basic-offset: 4 */
+/* End: */
+
+MATCH_TAIL_f_topAT6: ;
+Lf_EPILOGUE: ;

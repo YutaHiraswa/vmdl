@@ -1,0 +1,25 @@
+externC toFixnum: JSValue -> Fixnum
+externC toString: JSValue -> String
+
+f : (JSValue, JSValue) -> JSValue
+f(a, b){
+  top: match(a){
+    case (Fixnum a){
+      if(0 < a){
+        b <- toFixnum(b);
+      }else{
+        b <- toString(b);
+      }
+      rematch top(b);
+    }
+    case (Flonum a){
+      return a;
+    }
+    case (String a){
+      return b;
+    }
+    case (true){
+      
+    }
+  }
+}

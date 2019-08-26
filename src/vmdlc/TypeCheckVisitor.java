@@ -17,6 +17,7 @@ import vmdlc.TypeCheckVisitor.DefaultVisitor;
 import type.AstType.*;
 import type.AstType;
 import type.TypeMapBase;
+import type.TypeMapHybrid;
 import type.TypeMapFull;
 import type.TypeMapLub;
 import type.VMDataType;
@@ -91,7 +92,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     
     OperandSpecifications opSpec;
 
-    public static final TypeMapBase TYPE_MAP = new TypeMapFull();
+    public static final TypeMapBase TYPE_MAP = new TypeMapHybrid();
     
     public TypeCheckVisitor() {
         init(TypeCheckVisitor.class, new DefaultVisitor());
@@ -324,7 +325,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             TypeMapBase matchDict2 = dict.rematch(matchParams, rematchArgs, domain);
             TypeMapBase result = matchDict2.combine(matchDict);
             matchStack.updateDict(label, result);
-            
             return dict.getBottomDict();
         }
     }

@@ -220,7 +220,7 @@ public class TypeMapHybrid extends TypeMapBase {
                 int length = varNames.length;
                 NEXT_MAP: for(Map<String, AstType> m : dictSet){
                     for(int i=0; i<length; i++){
-                        if(m.get(varNames[i])!=AstType.get(v[i])){
+                        if(!((JSValueType)AstType.get(v[i])).isSuperOrEqual((JSValueType)m.get(varNames[i]))){
                             continue NEXT_MAP;
                         }
                     }
@@ -300,7 +300,7 @@ public class TypeMapHybrid extends TypeMapBase {
                     if(xt==null) continue NEXT_MAP;
                     if(xt instanceof JSValueType){
                         JSValueType t = (JSValueType)xt;
-                        if(!t.equals(JSValueType.get(dt))) continue NEXT_MAP;
+                        if(!t.isSuperOrEqual(JSValueType.get(dt))) continue NEXT_MAP;
                     }else
                         throw new Error("internal error :"+xt.toString());
                 }
