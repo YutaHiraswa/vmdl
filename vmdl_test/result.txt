@@ -1,0 +1,328 @@
+operand specification file :f.vmdlc-spec
+-----------------
+CFunction
+(#CFunction [] $annotations=(# [] '') $name=(#Name [] 'toFixnum') $type=(#TypeProduct [] 
+    (#JSValueTypeName [] 'JSValue') 
+    (#JSValueTypeName [] 'Fixnum')))
+---
+{}
+-----------------
+CFunction
+(#CFunction [] $annotations=(# [] '') $name=(#Name [] 'toString') $type=(#TypeProduct [] 
+    (#JSValueTypeName [] 'JSValue') 
+    (#JSValueTypeName [] 'String')))
+---
+{toFixnum=JSValue->Fixnum}
+-----------------
+FunctionMeta
+(#FunctionMeta [] $annotations=(# [] '') $name=(#Name [] 'f') $type=(#TypeProduct [] 
+    (#TypePair [] 
+      (#JSValueTypeName [] 'JSValue') 
+      (#JSValueTypeName [] 'JSValue')) 
+    (#JSValueTypeName [] 'JSValue')) $definition=(#FunctionDefinition [] $name=(#Name [] 'f') $params=(#Parameters [] 
+      (#Name [] 'v1') 
+      (#Name [] 'v2')) $body=(#Block [] 
+      (#Match [] $label=(#Name [] 'top') $params=(#MatchParameters [] 
+          (#Name [] 'v1')) $cases=(#Cases [] 
+          (#Case [] $pattern=(#TypePattern [] $type=(#JSValueTypeName [] 'Fixnum') $var=(#Name [] 'v1')) $body=(#Block [] 
+              (#If [] $cond=(#LessThan [] $left=(#Integer [] '0') $right=(#Name [] 'v1')) $then=(#Block [] 
+                  (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+                      (#ArgList [] 
+                        (#Name [] 'v2'))))) $else=(#Block [] 
+                  (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toString') 
+                      (#ArgList [] 
+                        (#Name [] 'v2')))))) 
+              (#Assignment [] $left=(#Name [] 'v1') $right=(#Name [] 'v2')) 
+              (#Rematch [] $label=(#Name [] 'top') 
+                (#Name [] 'v1')))) 
+          (#Case [] $pattern=(#TypePattern [] $type=(#JSValueTypeName [] 'Flonum') $var=(#Name [] 'v1')) $body=(#Block [] 
+              (#Return [] 
+                (#Name [] 'v1')))) 
+          (#Case [] $pattern=(#TypePattern [] $type=(#JSValueTypeName [] 'String') $var=(#Name [] 'v1')) $body=(#Block [] 
+              (#Return [] 
+                (#Name [] 'v2')))) 
+          (#AnyCase [] $body=(#Block [] '')))))))
+---
+{toFixnum=JSValue->Fixnum, toString=JSValue->String}
+-----------------
+Block
+(#Block [] 
+  (#Match [] $label=(#Name [] 'top') $params=(#MatchParameters [] 
+      (#Name [] 'v1')) $cases=(#Cases [] 
+      (#Case [] $pattern=(#TypePattern [] $type=(#JSValueTypeName [] 'Fixnum') $var=(#Name [] 'v1')) $body=(#Block [] 
+          (#If [] $cond=(#LessThan [] $left=(#Integer [] '0') $right=(#Name [] 'v1')) $then=(#Block [] 
+              (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+                  (#ArgList [] 
+                    (#Name [] 'v2'))))) $else=(#Block [] 
+              (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toString') 
+                  (#ArgList [] 
+                    (#Name [] 'v2')))))) 
+          (#Assignment [] $left=(#Name [] 'v1') $right=(#Name [] 'v2')) 
+          (#Rematch [] $label=(#Name [] 'top') 
+            (#Name [] 'v1')))) 
+      (#Case [] $pattern=(#TypePattern [] $type=(#JSValueTypeName [] 'Flonum') $var=(#Name [] 'v1')) $body=(#Block [] 
+          (#Return [] 
+            (#Name [] 'v1')))) 
+      (#Case [] $pattern=(#TypePattern [] $type=(#JSValueTypeName [] 'String') $var=(#Name [] 'v1')) $body=(#Block [] 
+          (#Return [] 
+            (#Name [] 'v2')))) 
+      (#AnyCase [] $body=(#Block [] '')))))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Match
+(#Match [] $label=(#Name [] 'top') $params=(#MatchParameters [] 
+    (#Name [] 'v1')) $cases=(#Cases [] 
+    (#Case [] $pattern=(#TypePattern [] $type=(#JSValueTypeName [] 'Fixnum') $var=(#Name [] 'v1')) $body=(#Block [] 
+        (#If [] $cond=(#LessThan [] $left=(#Integer [] '0') $right=(#Name [] 'v1')) $then=(#Block [] 
+            (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+                (#ArgList [] 
+                  (#Name [] 'v2'))))) $else=(#Block [] 
+            (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toString') 
+                (#ArgList [] 
+                  (#Name [] 'v2')))))) 
+        (#Assignment [] $left=(#Name [] 'v1') $right=(#Name [] 'v2')) 
+        (#Rematch [] $label=(#Name [] 'top') 
+          (#Name [] 'v1')))) 
+    (#Case [] $pattern=(#TypePattern [] $type=(#JSValueTypeName [] 'Flonum') $var=(#Name [] 'v1')) $body=(#Block [] 
+        (#Return [] 
+          (#Name [] 'v1')))) 
+    (#Case [] $pattern=(#TypePattern [] $type=(#JSValueTypeName [] 'String') $var=(#Name [] 'v1')) $body=(#Block [] 
+        (#Return [] 
+          (#Name [] 'v2')))) 
+    (#AnyCase [] $body=(#Block [] ''))))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Block
+(#Block [] 
+  (#If [] $cond=(#LessThan [] $left=(#Integer [] '0') $right=(#Name [] 'v1')) $then=(#Block [] 
+      (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+          (#ArgList [] 
+            (#Name [] 'v2'))))) $else=(#Block [] 
+      (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toString') 
+          (#ArgList [] 
+            (#Name [] 'v2')))))) 
+  (#Assignment [] $left=(#Name [] 'v1') $right=(#Name [] 'v2')) 
+  (#Rematch [] $label=(#Name [] 'top') 
+    (#Name [] 'v1')))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+If
+(#If [] $cond=(#LessThan [] $left=(#Integer [] '0') $right=(#Name [] 'v1')) $then=(#Block [] 
+    (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+        (#ArgList [] 
+          (#Name [] 'v2'))))) $else=(#Block [] 
+    (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toString') 
+        (#ArgList [] 
+          (#Name [] 'v2'))))))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Block
+(#Block [] 
+  (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+      (#ArgList [] 
+        (#Name [] 'v2')))))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Assignment
+(#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+    (#ArgList [] 
+      (#Name [] 'v2'))))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+FunctionCall
+(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+  (#ArgList [] 
+    (#Name [] 'v2')))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Name
+(#Name [] 'v2')
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Block
+(#Block [] 
+  (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toString') 
+      (#ArgList [] 
+        (#Name [] 'v2')))))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Assignment
+(#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toString') 
+    (#ArgList [] 
+      (#Name [] 'v2'))))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+FunctionCall
+(#FunctionCall [] $recv=(#Name [] 'toString') 
+  (#ArgList [] 
+    (#Name [] 'v2')))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Name
+(#Name [] 'v2')
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Assignment
+(#Assignment [] $left=(#Name [] 'v1') $right=(#Name [] 'v2'))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Name
+(#Name [] 'v2')
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Rematch
+(#Rematch [] $label=(#Name [] 'top') 
+  (#Name [] 'v1'))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=JSValue, v2=JSValue}
+-----------------
+Block
+(#Block [] 
+  (#If [] $cond=(#LessThan [] $left=(#Integer [] '0') $right=(#Name (Fixnum,) 'v1')) $then=(#Block [] 
+      (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+          (#ArgList [] 
+            (#Name [] 'v2'))))) $else=(#Block [] 
+      (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toString') 
+          (#ArgList [] 
+            (#Name [] 'v2')))))) 
+  (#Assignment [] $left=(#Name [] 'v1') $right=(#Name [] 'v2')) 
+  (#Rematch [] $label=(#Name [] 'top') 
+    (#Name ($bot,) 'v1')))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+If
+(#If [] $cond=(#LessThan [] $left=(#Integer [] '0') $right=(#Name (Fixnum,) 'v1')) $then=(#Block [] 
+    (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+        (#ArgList [] 
+          (#Name [] 'v2'))))) $else=(#Block [] 
+    (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toString') 
+        (#ArgList [] 
+          (#Name [] 'v2'))))))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Block
+(#Block [] 
+  (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+      (#ArgList [] 
+        (#Name [] 'v2')))))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Assignment
+(#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+    (#ArgList [] 
+      (#Name [] 'v2'))))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+FunctionCall
+(#FunctionCall [] $recv=(#Name [] 'toFixnum') 
+  (#ArgList [] 
+    (#Name [] 'v2')))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Name
+(#Name [] 'v2')
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Block
+(#Block [] 
+  (#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toString') 
+      (#ArgList [] 
+        (#Name [] 'v2')))))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Assignment
+(#Assignment [] $left=(#Name [] 'v2') $right=(#FunctionCall [] $recv=(#Name [] 'toString') 
+    (#ArgList [] 
+      (#Name [] 'v2'))))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+FunctionCall
+(#FunctionCall [] $recv=(#Name [] 'toString') 
+  (#ArgList [] 
+    (#Name [] 'v2')))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Name
+(#Name [] 'v2')
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Assignment
+(#Assignment [] $left=(#Name [] 'v1') $right=(#Name [] 'v2'))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Name
+(#Name [] 'v2')
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Fixnum, v2=JSValue}
+-----------------
+Rematch
+(#Rematch [] $label=(#Name [] 'top') 
+  (#Name ($bot,) 'v1'))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=JSValue, v2=JSValue}
+-----------------
+Block
+(#Block [] 
+  (#Return [] 
+    (#Name [] 'v1')))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Flonum, v2=JSValue}
+-----------------
+Return
+(#Return [] 
+  (#Name [] 'v1'))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Flonum, v2=JSValue}
+-----------------
+Name
+(#Name [] 'v1')
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=Flonum, v2=JSValue}
+-----------------
+Block
+(#Block [] 
+  (#Return [] 
+    (#Name [] 'v2')))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=String, v2=JSValue}
+-----------------
+Return
+(#Return [] 
+  (#Name [] 'v2'))
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=String, v2=JSValue}
+-----------------
+Name
+(#Name [] 'v2')
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=String, v2=JSValue}
+-----------------
+Block
+(#Block [] '')
+---
+{toFixnum=JSValue->Fixnum, f=(JSValue,JSValue)->JSValue, toString=JSValue->String, v1=JSValue, v2=JSValue}

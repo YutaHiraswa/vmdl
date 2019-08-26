@@ -258,6 +258,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for(String s : mp.getFormalParams()){
                 newEntryDict.addDispatch(s);
             }
+            Set<String> rematchVarSet = node.getRematchVarSet();
+            for(String s : rematchVarSet){
+                newEntryDict.addDispatch(s);
+            }
             /*
             List<String> formalParams = new ArrayList<String>();
             for (String p: mp.getFormalParams())
@@ -347,9 +351,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree right = node.get(Symbol.unique("right"));
             Set<AstType> rhsType = visit(right, dict).getExprType();
             SyntaxTree left = node.get(Symbol.unique("left"));
-            for(AstType t : rhsType){
-                dict.add(left.toText(), t);
-            }
+            dict.assignment(left.toText(), rhsType);
             return dict;
         }
         public void saveType(SyntaxTree node, TypeMapBase dict) throws Exception {

@@ -19,7 +19,7 @@ import nez.ast.SourceError;
 import type.*;
 import vmdlc.AlphaConvVisitor;
 import vmdlc.AstToCVisitor;
-import vmdlc.DesugarVisitor;
+import vmdlc.TypeCheckPreProcessVisitor;
 import vmdlc.SyntaxTree;
 import vmdlc.TypeCheckVisitor;
 
@@ -121,8 +121,9 @@ public class Main {
             throw new Error("no source file is specified");
         SyntaxTree ast = parse(sourceFile);
         
-        new DesugarVisitor().start(ast);
+        new TypeCheckPreProcessVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true);
+        //new TypeCheckPreProcessVisitor().start(ast);
         new TypeCheckVisitor().start(ast, opSpec, TYPE_MAPS[typeMapIndex-1]);
         String program = new AstToCVisitor().start(ast);
         

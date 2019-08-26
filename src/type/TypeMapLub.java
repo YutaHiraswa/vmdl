@@ -32,6 +32,13 @@ public class TypeMapLub extends TypeMapBase {
     }
     public void addDispatch(String name){}
     public void removeAllDispatch(){}
+    public void assignment(String name, Set<AstType> types){
+        AstType newType = AstType.BOT;
+        for(AstType t : types){
+            newType = newType.lub(t);
+        }
+        dict.put(name, newType);
+    }
     public void add(String name, AstType type){
         dict.put(name, type);
     }

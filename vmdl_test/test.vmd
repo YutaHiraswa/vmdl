@@ -10,7 +10,8 @@ f(a, b){
       }else{
         b <- toString(b);
       }
-      rematch top(b);
+      a <- b;
+      rematch top(a);
     }
     case (Flonum a){
       return a;

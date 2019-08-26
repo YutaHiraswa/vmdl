@@ -18,6 +18,7 @@ public abstract class TypeMapBase {
     public abstract Set<AstType> get(String name);
     public abstract void addDispatch(String name);
     public abstract void removeAllDispatch();
+    public abstract void assignment(String name, Set<AstType> types);
     public abstract void add(String name, AstType type);
     public abstract void add(Map<String, AstType> map);
     public abstract void add(Set<Map<String, AstType>> set);

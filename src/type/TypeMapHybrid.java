@@ -47,10 +47,43 @@ public class TypeMapHybrid extends TypeMapBase {
     public void removeAllDispatch(){
         dispatchSet = new HashSet<>();
     }
+    public void assignment(String name, Set<AstType> types){
+        Set<Map<String, AstType>> newSet = new HashSet<>();
+        if(dispatchSet.contains(name)){
+            for(AstType t : types){
+                for(Map<String, AstType> m : dictSet){
+                    Map<String, AstType> newGamma = new HashMap<>();
+                    for(String s : m.keySet()){
+                        newGamma.put(s, m.get(s));
+                    }
+                    newGamma.put(name, t);
+                    newSet.add(newGamma);
+                }
+            }
+        }else{
+            AstType newType = AstType.BOT;
+            for(AstType t : types){
+                newType = newType.lub(t);
+            }
+            for(Map<String, AstType> m : dictSet){
+                Map<String, AstType> newGamma = new HashMap<>();
+                for(String s : m.keySet()){
+                    newGamma.put(s, m.get(s));
+                }
+                newGamma.put(name, newType);
+                newSet.add(newGamma);
+            }
+        }
+        dictSet = newSet;
+    }
     public void add(String name, AstType type){
 
         for(Map<String, AstType> m : dictSet){
-            m.put(name, type);
+            if(m.get(name)==null){
+                m.put(name, type);
+            }else{
+                m.replace(name, type);
+            }
         }
     }
     public void add(Map<String, AstType> map){

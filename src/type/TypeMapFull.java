@@ -42,8 +42,26 @@ public class TypeMapFull extends TypeMapBase {
     public void add(String name, AstType type){
 
         for(Map<String, AstType> m : dictSet){
-            m.put(name, type);
+            if(m.get(name)==null){
+                m.put(name, type);
+            }else{
+                m.replace(name, type);
+            }
         }
+    }
+    public void assignment(String name, Set<AstType> types){
+        Set<Map<String, AstType>> newSet = new HashSet<>();
+        for(AstType t : types){
+            for(Map<String, AstType> m : dictSet){
+                Map<String, AstType> newGamma = new HashMap<>();
+                for(String s : m.keySet()){
+                    newGamma.put(s, m.get(s));
+                }
+                newGamma.put(name, t);
+                newSet.add(newGamma);
+            }
+        }
+        dictSet = newSet;
     }
     public void add(Map<String, AstType> map){
         for(Map<String, AstType> m : dictSet){

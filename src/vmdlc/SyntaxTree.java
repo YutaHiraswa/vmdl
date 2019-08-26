@@ -14,15 +14,18 @@ import java.util.Set;
 public class SyntaxTree extends Tree<SyntaxTree> {
     TypeMapBase dict;
     Set<AstType> type;
+    Set<String> rematchVarSet;
 
     public SyntaxTree() {
         super();
         type = null;
+        rematchVarSet = null;
     }
 
     public SyntaxTree(Symbol tag, Source source, long pos, int len, int size, Object value) {
         super(tag, source, pos, len, size > 0 ? new SyntaxTree[size] : null, value);
         type = null;
+        rematchVarSet = null;
     }
 
     @Override
@@ -90,5 +93,13 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     
     public TypeMapBase getTypeMap() {
         return dict;
+    }
+
+    public void setRematchVarSet(Set<String> set){
+        rematchVarSet = set;
+    }
+
+    public Set<String> getRematchVarSet(){
+        return rematchVarSet;
     }
 }
