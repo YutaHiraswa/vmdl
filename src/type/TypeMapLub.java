@@ -32,13 +32,6 @@ public class TypeMapLub extends TypeMapBase {
     }
     public void addDispatch(String name){}
     public void removeAllDispatch(){}
-    public void assignment(String name, Set<AstType> types){
-        AstType newType = AstType.BOT;
-        for(AstType t : types){
-            newType = newType.lub(t);
-        }
-        dict.put(name, newType);
-    }
     public void add(String name, AstType type){
         dict.put(name, type);
     }
@@ -83,18 +76,6 @@ public class TypeMapLub extends TypeMapBase {
     }
     public void update(String key, AstType value) {
         dict.replace(key, value);
-    }
-    public Set<AstType> combineExprTypes(Set<AstType> exprType1, Set<AstType> exprType2){
-        Set<AstType> newExprType = new HashSet<>();
-        AstType type = AstType.BOT;
-        for(AstType t : exprType1){
-            type = type.lub(t);
-        }
-        for(AstType t : exprType2){
-            type = type.lub(t);
-        }
-        newExprType.add(type);
-        return newExprType;
     }
     private Map<String, AstType> getLubDict(Set<Map<String, AstType>> _dictSet){
         HashMap<String, AstType> lubDict = new HashMap<>();
@@ -230,11 +211,99 @@ public class TypeMapLub extends TypeMapBase {
         if (this == obj ||
             obj != null && obj instanceof TypeMapLub) {
                 TypeMapLub tm = (TypeMapLub)obj;
-            return (dict != null && tm.dict !=null && dict.equals(tm.dict)) ||
-                (exprType != null && tm.exprType != null && exprType.equals(tm.exprType));
+            return (dict != null && tm.dict !=null && dict.equals(tm.dict)) &&
+                (exprTypeMap != null && tm.exprTypeMap != null && exprTypeMap.equals(tm.exprTypeMap));
         } else {
             return false;
         }
+    }
+
+    public void assignment(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
+        Set<Map<String, AstType>> removeMap = new HashSet<>();
+        Set<Map<String, AstType>> newSet = new HashSet<>();
+        for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
+            if(contains(dict, exprMap)){
+                Map<String,AstType> replacedDict = new HashMap<>();
+                for(String s : dict.keySet()){
+                    replacedDict.put(s, dict.get(s));
+                }
+                replacedDict.replace(name, exprTypeMap.get(exprMap));
+                removeMap.add(dict);
+                newSet.add(replacedDict);
+            }
+        }
+        for(Map<String, AstType> map : dictSet){
+            if(!removeMap.contains(map)){
+                newSet.add(map);
+            }
+        }
+        Map<String, AstType> newGamma = new HashMap<>();
+        for(String s : dict.keySet()){
+            newGamma.put(s, AstType.BOT);
+        }
+        for(Map<String, AstType> map : newSet){
+            for(String s : map.keySet()){
+                AstType t1 = newGamma.get(s);
+                AstType t2 = map.get(s);
+                if (t2 == null) {
+                    throw new Error("inconsistent type environment: s = "+s);
+                } else {
+                    if (t1 == t2) {
+                        newGamma.put(s, t1);
+                    } else if (t1 == AstType.BOT) {
+                        newGamma.put(s, t2);
+                    } else if (t2 == AstType.BOT) {
+                        newGamma.put(s, t1);
+                    } else if (!(t1 instanceof JSValueType && t2 instanceof JSValueType))
+                        throw new Error("type error");
+                    else {
+                        JSValueType jsvt1 = (JSValueType) t1;
+                        JSValueType jsvt2 = (JSValueType) t2;
+                        newGamma.put(s, jsvt1.lub(jsvt2));
+                    }
+                }
+            }
+        }
+        dict = newGamma;
+    }
+
+    private static boolean contains(Map<String,AstType> target, Map<String,AstType> map){
+        for(String s : map.keySet()){
+            if(!target.containsKey(s)) return false;
+            AstType t = target.get(s);
+            if(t instanceof JSValueType){
+                if(!((JSValueType)t).isSuperOrEqual((JSValueType)map.get(s))) return false;
+            }else{
+                if(t != map.get(s)) return false;
+            }
+        }
+        return true;
+    }
+
+    public void add(String name, Map<Map<String, AstType>, AstType> map) {
+        for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
+            for(Map<String,AstType> dictMap : dictSet){
+                if(contains(dictMap, exprMap)){
+                    Map<String,AstType> newMap = new HashMap<>();
+                    for(String s : dictMap.keySet()){
+                        newMap.put(s, dictMap.get(s));
+                    }
+                    newMap.put(name, exprTypeMap.get(exprMap));
+                    dictSet.add(newMap);
+                }
+            }
+        }
+    }
+
+    public Map<Map<String, AstType>, AstType> combineExprTypeMap(Map<Map<String, AstType>, AstType> exprTypeMap1, Map<Map<String, AstType>, AstType> exprTypeMap2) {
+        Map<Map<String, AstType>, AstType> newExprTypeMap = new HashMap<>();
+        for(Map<String,AstType> map : exprTypeMap1.keySet()){
+            newExprTypeMap.put(map, exprTypeMap1.get(map));
+        }
+        for(Map<String,AstType> map : exprTypeMap2.keySet()){
+            newExprTypeMap.put(map, exprTypeMap2.get(map));
+        }
+        return newExprTypeMap;
     }
 }
 

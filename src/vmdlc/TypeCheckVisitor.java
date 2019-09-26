@@ -115,11 +115,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     private final TypeMapBase visit(SyntaxTree node, TypeMapBase dict) throws Exception {
-        //System.err.println("-----------------");
-        //System.err.println(node.getTag().toString());
-        //System.err.println(node.toString());
-        //System.err.println("---");
-        //System.err.println(dict.toString());
+        /*
+        System.err.println("==================");
+        System.err.println(node.getTag().toString());
+        System.err.println(node.toString());
+        System.err.println("----");
+        System.err.println(dict.toString());
+        */
         return find(node.getTag().toString()).accept(node, dict);
     }
 
@@ -301,7 +303,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
                 newEntryDict = matchStack.pop();
             } while (!entryDict.equals(newEntryDict));
-            
             node.setTypeMap(entryDict);
 
             SyntaxTree paramsNode= node.get(Symbol.unique("params"));
@@ -337,7 +338,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Return extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            Set<AstType> t = visit(node.get(0), dict).getExprType();
             save(node.get(0), dict);
             return dict;
         }
@@ -349,9 +349,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             SyntaxTree right = node.get(Symbol.unique("right"));
-            Set<AstType> rhsType = visit(right, dict).getExprType();
+            Map<Map<String, AstType>, AstType> rhsTypeMap = visit(right, dict).getExprTypeMap();
             SyntaxTree left = node.get(Symbol.unique("left"));
-            dict.assignment(left.toText(), rhsType);
+            dict.assignment(left.toText(), rhsTypeMap);
             return dict;
         }
         public void saveType(SyntaxTree node, TypeMapBase dict) throws Exception {
@@ -362,8 +362,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             SyntaxTree right = node.get(Symbol.unique("right"));
-            Set<AstType> rhsType = visit(right, dict).getExprType();
-            for(AstType t : rhsType){
+            Map<Map<String, AstType>, AstType> rhsTypeMap = visit(right, dict).getExprTypeMap();
+            for(Map<String, AstType> m : rhsTypeMap.keySet()){
+                AstType t = rhsTypeMap.get(m);
                 if (t instanceof AstPairType) {
                     ArrayList<AstType> types = ((AstPairType)t).getTypes();
                     SyntaxTree left = node.get(Symbol.unique("left"));
@@ -371,7 +372,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                         throw new Error("AssignmentPair: return type error");
                     }
                     for (int i = 0; i < types.size(); i++) {
-                        dict.add(left.get(i).toText(), types.get(i));
+                        dict.add(left.get(i).toText(), types.get(i)); //単純にassignmentを呼べず、ここで個別に処理する必要あり
                     }
                 } else {
                     throw new Error("AssignmentPair: type error");
@@ -392,11 +393,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             SyntaxTree var = node.get(Symbol.unique("var"));
             SyntaxTree expr = node.get(Symbol.unique("expr"));
-            Set<AstType> rhsType = visit(expr, dict).getExprType();
-            
-            for(AstType t : rhsType){
-                dict.add(var.toText(), t);
-            }
+            Map<Map<String, AstType>, AstType> rhsTypeMap = visit(expr, dict).getExprTypeMap();
+            dict.add(var.toText(), rhsTypeMap);
             save(expr, dict);
             save(var, dict);
             return dict;
@@ -413,7 +411,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             
             TypeMapBase thenDict = visit(thenNode, dict);
             SyntaxTree elseNode = node.get(Symbol.unique("else"));
-
             TypeMapBase resultDict;
             if (elseNode == null) {
                 resultDict = thenDict;
@@ -437,11 +434,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree initNode = node.get(Symbol.unique("init"));
             SyntaxTree varNode = initNode.get(Symbol.unique("var"));
             SyntaxTree exprNode = initNode.get(Symbol.unique("expr"));
-            Set<AstType> rhsType = visit(exprNode, dict).getExprType();
-            for(AstType t : rhsType){
-                dict.add(varNode.toText(), t);
-            }
-            
+            Map<Map<String, AstType>, AstType> rhsTypeMap = visit(exprNode, dict).getExprTypeMap();
+            dict.add(varNode.toText(), rhsTypeMap);
+
             TypeMapBase savedDict;
             do {
                 savedDict = dict.clone();
@@ -494,15 +489,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Trinary extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            //TypeMapBase copyDict = dict.clone();
             SyntaxTree thenNode = node.get(Symbol.unique("then"));
-            Set<AstType> thenType = visit(thenNode, dict).getExprType();
+            Map<Map<String, AstType>, AstType> thenExprTypeMap = visit(thenNode, dict).getExprTypeMap();
             SyntaxTree elseNode = node.get(Symbol.unique("else"));
-            //AstBaseType elseType = visit(elseNode, copyDict).getExprType();
-            Set<AstType> elseType = visit(elseNode, dict).getExprType();
+            Map<Map<String, AstType>, AstType> elseExprTypeMap = visit(elseNode, dict).getExprTypeMap();
 
             TypeMapBase resultMap = TYPE_MAP.clone();
-            resultMap.setExprType(resultMap.combineExprTypes(thenType, elseType));
+            resultMap.setExprTypeMap(resultMap.combineExprTypeMap(thenExprTypeMap, elseExprTypeMap));
             return resultMap;
         }
     }
@@ -510,9 +503,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-            Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("cint"));
-			tempMap.setExprType(tempSet);
+            tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("cint"));
             return tempMap;
         }
     }
@@ -520,20 +511,16 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("cint"));
-			tempMap.setExprType(tempSet);
+			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("cint"));
 			return tempMap;
         }
     }
     public class BitwiseOr extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            AstType t = bitwiseOperator(node, dict);
+            Map<Map<String,AstType>,AstType> exprTypeMap = bitwiseOperator(node, dict);
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(t);
-			tempMap.setExprType(tempSet);
+			tempMap.setExprTypeMap(exprTypeMap);
 			return tempMap;
         }
     }
@@ -541,11 +528,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class BitwiseXOr extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            AstType t = bitwiseOperator(node, dict);
+            Map<Map<String,AstType>,AstType> exprTypeMap = bitwiseOperator(node, dict);
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(t);
-			tempMap.setExprType(tempSet);
+			tempMap.setExprTypeMap(exprTypeMap);
 			return tempMap;
         }
     }
@@ -553,11 +538,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class BitwiseAnd extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            AstType t = bitwiseOperator(node, dict);
+            Map<Map<String,AstType>,AstType> exprTypeMap = bitwiseOperator(node, dict);
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(t);
-			tempMap.setExprType(tempSet);
+			tempMap.setExprTypeMap(exprTypeMap);
 			return tempMap;
         }
     }
@@ -566,9 +549,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("cint"));
-			tempMap.setExprType(tempSet);
+			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("cint"));
 			return tempMap;
         }
     }
@@ -577,9 +558,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("cint"));
-			tempMap.setExprType(tempSet);
+			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("cint"));
 			return tempMap;
         }
     }
@@ -588,9 +567,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("cint"));
-			tempMap.setExprType(tempSet);
+            tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("cint"));
 			return tempMap;
         }
     }
@@ -598,9 +575,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("cint"));
-			tempMap.setExprType(tempSet);
+			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("cint"));
 			return tempMap;
         }
     }
@@ -608,9 +583,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("cint"));
-			tempMap.setExprType(tempSet);
+			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("cint"));
 			return tempMap;
         }
     }
@@ -618,9 +591,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("cint"));
-			tempMap.setExprType(tempSet);
+			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("cint"));
 			return tempMap;
         }
     }
@@ -628,9 +599,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             SyntaxTree leftNode = node.get(Symbol.unique("left"));
-            Set<AstType> leftType = visit(leftNode, dict).getExprType();
             TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.setExprType(leftType);
+			tempMap.setExprTypeMap(visit(leftNode, dict).getExprTypeMap());
 			return tempMap;
         }
     }
@@ -638,9 +608,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             SyntaxTree leftNode = node.get(Symbol.unique("left"));
-            Set<AstType> leftType = visit(leftNode, dict).getExprType();
             TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.setExprType(leftType);
+			tempMap.setExprTypeMap(visit(leftNode, dict).getExprTypeMap());
 			return tempMap;
         }
     }
@@ -654,81 +623,123 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         return true;
     }
     
-    private AstType numberOperator(SyntaxTree node, TypeMapBase dict) throws Exception {
+    private Map<Map<String,AstType>,AstType> numberOperator(SyntaxTree node, TypeMapBase dict) throws Exception {
         SyntaxTree leftNode = node.get(Symbol.unique("left"));
-        Set<AstType> lType = visit(leftNode, dict).getExprType();
         SyntaxTree rightNode = node.get(Symbol.unique("right"));
-        Set<AstType> rType = visit(rightNode, dict).getExprType();
-
-        if(isNumberSet(lType)&&isNumberSet(rType)){
-            if(lType.contains(tCdouble)||rType.contains(tCdouble)){
-                return tCdouble;
-            }else{
-                return tCint;
+        Set<Map<String,AstType>> lExprTypeMapCint    = visit(leftNode, dict).getKeySetValueOf(tCint);
+        Set<Map<String,AstType>> lExprTypeMapCdouble = visit(leftNode, dict).getKeySetValueOf(tCdouble);
+        Set<Map<String,AstType>> rExprTypeMapCint    = visit(rightNode, dict).getKeySetValueOf(tCint);
+        Set<Map<String,AstType>> rExprTypeMapCdouble = visit(rightNode, dict).getKeySetValueOf(tCdouble);
+        List<Set<Map<String,AstType>>> keySetSetArray = new ArrayList<>();
+        keySetSetArray.add(lExprTypeMapCint);
+        keySetSetArray.add(lExprTypeMapCdouble);
+        keySetSetArray.add(rExprTypeMapCint);
+        keySetSetArray.add(rExprTypeMapCdouble);
+        int index[][] = {{0, 2}, {0, 3}, {1, 2}, {1, 3}};
+        int indexLength = index.length;
+        Set<Map<String,AstType>> newCintKeySet = new HashSet<>();
+        for(Map<String,AstType> m1 : keySetSetArray.get(index[0][0])){
+            for(Map<String,AstType> m2 : keySetSetArray.get(index[0][1])){
+                Map<String,AstType> tempMap = new HashMap<>(m1);
+                for(String name : m2.keySet()){
+                    if(!m1.containsKey(name)){
+                        tempMap.put(name, m2.get(name));
+                        continue;
+                    }
+                    if(m1.get(name)!=m2.get(name)){
+                        tempMap = null;
+                        break;
+                    }
+                }
+                if(tempMap!=null){
+                    newCintKeySet.add(tempMap);
+                }
             }
         }
-        /*
-        if (lType == tCint || rType == tCint) {
-            return tCint;
-        } else if ((lType == tCint || lType == tCdouble) || (rType == tCint || rType == tCdouble)){
-            return tCdouble;
+        Set<Map<String,AstType>> newCdoubleKeySet = new HashSet<>();
+        for(int i=1; i<indexLength; i++){
+            for(Map<String,AstType> m1 : keySetSetArray.get(index[i][0])){
+                for(Map<String,AstType> m2 : keySetSetArray.get(index[i][1])){
+                    Map<String,AstType> tempMap = new HashMap<>(m1);
+                    for(String name : m2.keySet()){
+                        if(!m1.containsKey(name)){
+                            tempMap.put(name, m2.get(name));
+                            continue;
+                        }
+                        if(m1.get(name)!=m2.get(name)){
+                            tempMap = null;
+                            break;
+                        }
+                    }
+                    if(tempMap!=null){
+                        newCdoubleKeySet.add(tempMap);
+                    }
+                }
+            }
         }
-        */
-        throw new Error("type error");
+        Map<Map<String,AstType>,AstType> newExprTypeMap = new HashMap<>();
+        for(Map<String,AstType> m : newCintKeySet){
+            newExprTypeMap.put(m, tCint);
+        }
+        for(Map<String,AstType> m : newCdoubleKeySet){
+            newExprTypeMap.put(m, tCdouble);
+        }
+        return newExprTypeMap;
+        //throw new Error("type error");
     }
 
-    private AstType bitwiseOperator(SyntaxTree node, TypeMapBase dict) throws Exception {
+    private Map<Map<String,AstType>,AstType> bitwiseOperator(SyntaxTree node, TypeMapBase dict) throws Exception {
         SyntaxTree leftNode = node.get(Symbol.unique("left"));
-        Set<AstType> lType = visit(leftNode, dict).getExprType();
+        Map<Map<String,AstType>,AstType> lExprTypeMap = visit(leftNode, dict).getExprTypeMap();
         SyntaxTree rightNode = node.get(Symbol.unique("right"));
-        Set<AstType> rType = visit(rightNode, dict).getExprType();
+        Map<Map<String,AstType>,AstType> rExprTypeMap = visit(rightNode, dict).getExprTypeMap();
 
-        if (lType.size()==1&&lType.contains(tCint)&&rType.size()==1&&rType.contains(tCint))
-            return tCint;
-        throw new Error("type error");
+        for(Map<String,AstType> m : lExprTypeMap.keySet()){
+            if(lExprTypeMap.get(m)!=tCint){
+                throw new Error("type error: exprType has not Cint pattern");
+            }
+        }
+        for(Map<String,AstType> m : rExprTypeMap.keySet()){
+            if(rExprTypeMap.get(m)!=tCint){
+                throw new Error("type error: exprType has not Cint pattern");
+            }
+        }
+        return TypeMapBase.getSimpleExprTypeMap(tCint);
     }
 
     public class Add extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            AstType t = numberOperator(node, dict);
+            Map<Map<String,AstType>,AstType> exprTypeMap = numberOperator(node, dict);
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(t);
-			tempMap.setExprType(tempSet);
+			tempMap.setExprTypeMap(exprTypeMap);
 			return tempMap;
         }
     }
     public class Sub extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            AstType t = numberOperator(node, dict);
+            Map<Map<String,AstType>,AstType> exprTypeMap = numberOperator(node, dict);
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(t);
-			tempMap.setExprType(tempSet);
+			tempMap.setExprTypeMap(exprTypeMap);
 			return tempMap;
         }
     }
     public class Mul extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            AstType t = numberOperator(node, dict);
+            Map<Map<String,AstType>,AstType> exprTypeMap = numberOperator(node, dict);
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(t);
-			tempMap.setExprType(tempSet);
+			tempMap.setExprTypeMap(exprTypeMap);
 			return tempMap;
         }
     }
     public class Div extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            AstType t = numberOperator(node, dict);
+            Map<Map<String,AstType>,AstType> exprTypeMap = numberOperator(node, dict);
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(t);
-			tempMap.setExprType(tempSet);
+			tempMap.setExprTypeMap(exprTypeMap);
 			return tempMap;
         }
     }
@@ -737,9 +748,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
-            Set<AstType> exprType = visit(exprNode, dict).getExprType();
             TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.setExprType(exprType);
+			tempMap.setExprTypeMap(TypeMapBase.cloneExprTypeMap(visit(exprNode, dict).getExprTypeMap()));
 			return tempMap;
         }
     }
@@ -747,9 +757,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
-            Set<AstType> exprType = visit(exprNode, dict).getExprType();
             TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.setExprType(exprType);
+			tempMap.setExprTypeMap(TypeMapBase.cloneExprTypeMap(visit(exprNode, dict).getExprTypeMap()));
 			return tempMap;
         }
     }
@@ -757,9 +766,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
-            Set<AstType> exprType = visit(exprNode, dict).getExprType();
             TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.setExprType(exprType);
+			tempMap.setExprTypeMap(TypeMapBase.cloneExprTypeMap(visit(exprNode, dict).getExprTypeMap()));
 			return tempMap;
         }
     }
@@ -767,9 +775,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("Bool"));
-			tempMap.setExprType(tempSet);
+			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("Bool"));
 			return tempMap;
         }
     }
@@ -785,20 +791,18 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             Set<AstType> funTypeSet = dict.get(funName);
             if(funTypeSet.size() != 1){
-                throw new Error("FunctionCall: function \""+funName+"\" has multiple types");
+                throw new Error("FunctionCall: function \""+funName+"\" is defined multiple types");
             }
             AstProductType funType = (AstProductType)funTypeSet.toArray()[0];
             AstBaseType rangeType = (AstBaseType)funType.getRange();
            
             // TODO: type check
             for (SyntaxTree arg : node.get(1)) {
-                Set<AstType> argType = visit(arg, dict).getExprType();
+                Map<Map<String,AstType>,AstType> exprTypeMap = visit(arg, dict).getExprTypeMap();
             }
             
             TypeMapBase tempMap = TYPE_MAP.clone();
-            Set<AstType> tempSet = new HashSet<>();
-            tempSet.add(rangeType);
-			tempMap.setExprType(tempSet);
+			tempMap.setExprTypeMap(TypeMapBase.getSimpleExprTypeMap(rangeType));
 			return tempMap;
         }
     }
@@ -821,9 +825,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("cint"));
-			tempMap.setExprType(tempSet);
+			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("cint"));
 			return tempMap;
         }
     }
@@ -832,9 +834,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("cdouble"));
-			tempMap.setExprType(tempSet);
+			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("cdouble"));
 			return tempMap;
         }
     }
@@ -843,9 +843,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("String"));
-			tempMap.setExprType(tempSet);
+			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("String"));
 			return tempMap;
         }
     }
@@ -854,9 +852,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("Bool"));
-			tempMap.setExprType(tempSet);
+			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("Bool"));
 			return tempMap;
         }
     }
@@ -864,9 +860,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase tempMap = TYPE_MAP.clone();
-			Set<AstType> tempSet = new HashSet<>();
-			tempSet.add(AstType.get("Bool"));
-			tempMap.setExprType(tempSet);
+            tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("Bool"));
 			return tempMap;
         }
     }
@@ -874,19 +868,31 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Name extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            if (!dict.containsKey(node.toText())) {
-                throw new Error("Name: no such name: "+node.getSource().getResourceName()+": "+node.getLineNum());
+            String name = node.toText();
+            if (!dict.containsKey(name)) {
+                System.err.println(dict.toString());
+                throw new Error("Name: no such name: "+"\""+name+"\""+node.getSource().getResourceName()+": "+node.getLineNum());
             }
-            Set<AstType> type = dict.get(node.toText());
-
+            Set<AstType> type = dict.get(name);
             TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.setExprType(type);
+            for(AstType t : type){
+                Map<String, AstType> keyMap = new HashMap<>();
+                keyMap.put(name, t);
+                tempMap.putExprTypeElement(keyMap, t);
+            }
 			return tempMap;
         }
         public void saveType(SyntaxTree node, TypeMapBase dict) throws Exception {
-            if (dict.containsKey(node.toText())) {
-                Set<AstType> type = dict.get(node.toText());
-                node.setType(type);
+            String name = node.toText();
+            if (dict.containsKey(name)) {
+                Set<AstType> type = dict.get(name);
+                Map<Map<String, AstType>, AstType> tempExprTypeMap = new HashMap<>();
+                for(AstType t : type){
+                    Map<String, AstType> keyMap = new HashMap<>();
+                    keyMap.put(name, t);
+                    tempExprTypeMap.put(keyMap, t);
+                }
+                node.setExprTypeMap(tempExprTypeMap);
             }
         }
     }

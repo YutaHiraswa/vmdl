@@ -10,21 +10,22 @@ import vmdlc.SyntaxTree;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Map;
 
 public class SyntaxTree extends Tree<SyntaxTree> {
     TypeMapBase dict;
-    Set<AstType> type;
+    Map<Map<String, AstType>, AstType> exprTypeMap;
     Set<String> rematchVarSet;
 
     public SyntaxTree() {
         super();
-        type = null;
+        exprTypeMap = null;
         rematchVarSet = null;
     }
 
     public SyntaxTree(Symbol tag, Source source, long pos, int len, int size, Object value) {
         super(tag, source, pos, len, size > 0 ? new SyntaxTree[size] : null, value);
-        type = null;
+        exprTypeMap = null;
         rematchVarSet = null;
     }
 
@@ -69,12 +70,14 @@ public class SyntaxTree extends Tree<SyntaxTree> {
 
     @Override
     protected void appendExtraStringfied(StringBuilder sb) {
-        if (type == null) {
+        if (exprTypeMap == null) {
+            sb.append(" []");
+        } else if (exprTypeMap.isEmpty()){
             sb.append(" []");
         } else {
             sb.append(" (");
-            for(AstType t : type){
-                sb.append(t+",");
+            for(Map<String,AstType> m : exprTypeMap.keySet()){
+                sb.append(m.toString()+"->"+exprTypeMap.get(m)+",");
             }
             sb.append(")");
             /*
@@ -83,8 +86,8 @@ public class SyntaxTree extends Tree<SyntaxTree> {
         }
     }
     
-    public void setType(Set<AstType> _type) {
-        type = _type;
+    public void setExprTypeMap(Map<Map<String, AstType>, AstType> _exprTypeMap) {
+        exprTypeMap = _exprTypeMap;
     }
     
     public void setTypeMap(TypeMapBase dict) {

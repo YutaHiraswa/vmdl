@@ -1,25 +1,29 @@
 package type;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 public abstract class TypeMapBase {
-    Set<AstType> exprType;
+    Map<Map<String, AstType>, AstType> exprTypeMap;
 
     public TypeMapBase(){
+        exprTypeMap = new HashMap<>();
     }
 
-    public TypeMapBase(Set<AstType> _exprType){
-        exprType = _exprType;
+    public TypeMapBase(Map<Map<String, AstType>, AstType> _exprTypeMap){
+        exprTypeMap = _exprTypeMap;
     }
 
     public abstract Set<Map<String, AstType>> getDictSet();
     public abstract Set<AstType> get(String name);
     public abstract void addDispatch(String name);
     public abstract void removeAllDispatch();
-    public abstract void assignment(String name, Set<AstType> types);
+    public abstract void assignment(String name, Map<Map<String, AstType>, AstType> exprTypeMap);
     public abstract void add(String name, AstType type);
+    public abstract void add(String name, Map<Map<String,AstType>,AstType> map);
     public abstract void add(Map<String, AstType> map);
     public abstract void add(Set<Map<String, AstType>> set);
     //public abstract void add(VMDataTypeVecSet vtvs) <- 上のaddを用いる形に書き換えるのが良さげ？
@@ -29,13 +33,56 @@ public abstract class TypeMapBase {
     public TypeMapBase clone(){
         return null;
     }
-    public Set<AstType> getExprType() {
-        return exprType;
+    public Set<AstType> getExprType(Map<String, AstType> key) {
+        Set<AstType> tempSet = new HashSet<>();
+        for(Map<String, AstType> m : exprTypeMap.keySet()){
+            boolean isInclude = true;
+            for(String s : key.keySet()){
+                if(m.containsKey(s)){
+                    if(key.get(s).equals(m.get(s))){
+                        continue;
+                    }
+                }
+                isInclude = false;
+                break;
+            }
+            if(isInclude){
+                tempSet.add(exprTypeMap.get(m));
+            }
+        }
+        return tempSet;
     }
-    public void setExprType(Set<AstType> _exprType) {
-        exprType = _exprType;
+    public Map<Map<String, AstType>, AstType> getExprTypeMap(){
+        return exprTypeMap;
     }
-    public abstract Set<AstType> combineExprTypes(Set<AstType> exprType1, Set<AstType> exprType2);
+    public Set<Map<String, AstType>> getKeySetValueOf(AstType t){
+        Set<Map<String, AstType>> newSet = new HashSet<>();
+        for(Map<String,AstType> m : exprTypeMap.keySet()){
+            if(exprTypeMap.get(m).equals(t))newSet.add(m);
+        }
+        return newSet;
+    }
+    public void putExprTypeElement(Map<String, AstType> key, AstType type) {
+        exprTypeMap.put(key, type);
+    }
+    public void setExprTypeMap(Map<Map<String, AstType>, AstType> map){
+        exprTypeMap = map;
+    }
+    public static Map<Map<String,AstType>,AstType> getSimpleExprTypeMap(AstType type){
+        Map<Map<String,AstType>,AstType> newMap = new HashMap<>();
+        newMap.put(new HashMap<>(), type);
+        return newMap;
+    }
+    public static Map<Map<String,AstType>,AstType> cloneExprTypeMap(Map<Map<String,AstType>,AstType> map){
+        Map<Map<String,AstType>,AstType> newMap = new HashMap<>();
+        for(Map<String,AstType> km : map.keySet()){
+            Map<String,AstType> clonedKeyMap = new HashMap<>(km);
+            newMap.put(clonedKeyMap, map.get(km));
+        }
+        return newMap;
+    }
+    public abstract Map<Map<String, AstType>, AstType> 
+    combineExprTypeMap(Map<Map<String, AstType>, AstType> exprTypeMap1, Map<Map<String, AstType>, AstType> exprTypeMap2);
     public abstract TypeMapBase combine(TypeMapBase that);
     public abstract TypeMapBase enterCase(String[] varNames, VMDataTypeVecSet caseCondition);
     public abstract TypeMapBase rematch(String[] params, String[] args, Set<String> domain);

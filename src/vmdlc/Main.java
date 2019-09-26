@@ -123,7 +123,6 @@ public class Main {
         
         new TypeCheckPreProcessVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true);
-        //new TypeCheckPreProcessVisitor().start(ast);
         new TypeCheckVisitor().start(ast, opSpec, TYPE_MAPS[typeMapIndex-1]);
         String program = new AstToCVisitor().start(ast);
         
