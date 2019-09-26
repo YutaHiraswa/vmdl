@@ -115,13 +115,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     private final TypeMapBase visit(SyntaxTree node, TypeMapBase dict) throws Exception {
-        /*
+        
         System.err.println("==================");
         System.err.println(node.getTag().toString());
         System.err.println(node.toString());
         System.err.println("----");
         System.err.println(dict.toString());
-        */
+        
         return find(node.getTag().toString()).accept(node, dict);
     }
 

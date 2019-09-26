@@ -95,6 +95,7 @@ public class TypeMapLub extends TypeMapBase {
     public TypeMapBase combine(TypeMapBase that) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
         Map<String, AstType> thatDict = getLubDict(that.getDictSet());
+        System.err.println(dict.toString());
         for (String v : dict.keySet()) {
             AstType t1 = dict.get(v);
             AstType t2 = thatDict.get(v);
@@ -108,7 +109,7 @@ public class TypeMapLub extends TypeMapBase {
                 } else if (t2 == AstType.BOT) {
                     newGamma.put(v, t1);
                 } else if (!(t1 instanceof JSValueType && t2 instanceof JSValueType))
-                    throw new Error("type error");
+                    throw new Error("type error: t1="+t1+" t2="+t2);
                 else {
                     JSValueType jsvt1 = (JSValueType) t1;
                     JSValueType jsvt2 = (JSValueType) t2;
@@ -281,18 +282,13 @@ public class TypeMapLub extends TypeMapBase {
     }
 
     public void add(String name, Map<Map<String, AstType>, AstType> map) {
+        AstType type = AstType.BOT;
         for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
-            for(Map<String,AstType> dictMap : dictSet){
-                if(contains(dictMap, exprMap)){
-                    Map<String,AstType> newMap = new HashMap<>();
-                    for(String s : dictMap.keySet()){
-                        newMap.put(s, dictMap.get(s));
-                    }
-                    newMap.put(name, exprTypeMap.get(exprMap));
-                    dictSet.add(newMap);
-                }
+            if(contains(dict, exprMap)){
+                type = type.lub(exprTypeMap.get(exprMap));
             }
         }
+        dict.put(name, type);
     }
 
     public Map<Map<String, AstType>, AstType> combineExprTypeMap(Map<Map<String, AstType>, AstType> exprTypeMap1, Map<Map<String, AstType>, AstType> exprTypeMap2) {

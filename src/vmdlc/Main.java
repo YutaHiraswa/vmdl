@@ -121,6 +121,7 @@ public class Main {
             throw new Error("no source file is specified");
         SyntaxTree ast = parse(sourceFile);
         
+        new DesugarVisitor().start(ast);
         new TypeCheckPreProcessVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true);
         new TypeCheckVisitor().start(ast, opSpec, TYPE_MAPS[typeMapIndex-1]);
