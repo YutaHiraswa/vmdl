@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import type.AstType.JSValueType;
+
 public abstract class TypeMapBase {
     Map<Map<String, AstType>, AstType> exprTypeMap;
 
@@ -20,19 +22,17 @@ public abstract class TypeMapBase {
     public abstract Set<Map<String, AstType>> getDictSet();
     public abstract Set<AstType> get(String name);
     public abstract void addDispatch(String name);
-    public abstract void removeAllDispatch();
-    public abstract void assignment(String name, Map<Map<String, AstType>, AstType> exprTypeMap);
+    public abstract void clearDispatch();
+    public abstract Set<String> getDispatchSet();
+    public abstract void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap);
     public abstract void add(String name, AstType type);
     public abstract void add(String name, Map<Map<String,AstType>,AstType> map);
     public abstract void add(Map<String, AstType> map);
     public abstract void add(Set<Map<String, AstType>> set);
-    //public abstract void add(VMDataTypeVecSet vtvs) <- 上のaddを用いる形に書き換えるのが良さげ？
     public abstract boolean containsKey(String key);
     public abstract Set<String> getKeys();
     public abstract TypeMapBase select(Collection<String> domain); //TODO: CollectionとSetの違いについて調べる
-    public TypeMapBase clone(){
-        return null;
-    }
+    public abstract TypeMapBase clone();
     public Set<AstType> getExprType(Map<String, AstType> key) {
         Set<AstType> tempSet = new HashSet<>();
         for(Map<String, AstType> m : exprTypeMap.keySet()){
@@ -80,6 +80,18 @@ public abstract class TypeMapBase {
             newMap.put(clonedKeyMap, map.get(km));
         }
         return newMap;
+    }
+    public static boolean contains(Map<String,AstType> target, Map<String,AstType> cond){
+        for(String s : cond.keySet()){
+            if(!target.containsKey(s)) return false;
+            AstType t = target.get(s);
+            if(t instanceof JSValueType){
+                if(!((JSValueType)t).isSuperOrEqual((JSValueType)cond.get(s))) return false;
+            }else{
+                if(t != cond.get(s)) return false;
+            }
+        }
+        return true;
     }
     public abstract Map<Map<String, AstType>, AstType> 
     combineExprTypeMap(Map<Map<String, AstType>, AstType> exprTypeMap1, Map<Map<String, AstType>, AstType> exprTypeMap2);

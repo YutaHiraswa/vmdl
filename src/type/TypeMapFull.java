@@ -38,9 +38,11 @@ public class TypeMapFull extends TypeMapBase {
         return typeSet;
     }
     public void addDispatch(String name){}
-    public void removeAllDispatch(){}
+    public void clearDispatch(){}
+    public Set<String> getDispatchSet(){
+        return new HashSet<String>(0);
+    }
     public void add(String name, AstType type){
-
         for(Map<String, AstType> m : dictSet){
             if(m.get(name)==null){
                 m.put(name, type);
@@ -97,6 +99,7 @@ public class TypeMapFull extends TypeMapBase {
         }
         return new TypeMapFull(selectedSet, null);
     }
+    @Override
     public TypeMapBase clone(){
         Set<Map<String, AstType>> newSet = new HashSet<>();
         for(Map<String, AstType> m : dictSet){
@@ -107,21 +110,6 @@ public class TypeMapFull extends TypeMapBase {
             newSet.add(newGamma);
         }
         return new TypeMapFull(newSet, null);
-    }
-    private AstType getLubType(Set<AstType> set){
-        AstType result = AstType.BOT;
-        for(AstType t : set){
-            if(t==AstType.BOT) continue;
-            //if(!(t instanceof JSValueType)){
-                if(t instanceof AstType.AstProductType){
-                    result = t;
-                    continue;
-                }
-                //throw new Error("type error :"+t.toString());
-            //}
-            result = result.lub(t);
-        }
-        return result;
     }
     public TypeMapBase combine(TypeMapBase that){
         Set<Map<String, AstType>> newSet = new HashSet<>();
@@ -145,20 +133,6 @@ public class TypeMapFull extends TypeMapBase {
             }
         }
         return -1;
-    }
-    private Set<Map<String, AstType>> exceptSet(Set<Map<String, AstType>> set, String[] varNames){
-        Set<Map<String, AstType>> newSet = new HashSet<>();
-        for(Map<String, AstType> m : set){
-            Map<String, AstType> newMap = new HashMap<>();
-            for (String s : m.keySet()) {
-                AstType t = m.get(s);
-                int index = indexOf(varNames, s);
-                if (index == -1)
-                    newMap.put(s, t);
-            }
-            newSet.add(newMap);
-        }
-        return newSet;
     }
     public TypeMapBase enterCase(String[] varNames, VMDataTypeVecSet caseCondition){
         Set<VMDataType[]> conditionSet = caseCondition.getTuples();
@@ -192,21 +166,6 @@ public class TypeMapFull extends TypeMapBase {
                 }
                 newSet.add(newGamma);
             }
-            /*
-            for(VMDataType[] v : conditionSet){
-                Map<String, AstType> condGamma = new HashMap<>();
-                int length = varNames.length;
-                for(int i=0; i<length; i++){
-                    condGamma.put(varNames[i], AstType.get(v[i]));
-                }
-                Set<Map<String, AstType>> exceptCondSet = exceptSet(dictSet, varNames);
-                for(Map<String, AstType> m : exceptCondSet){
-                    Map<String, AstType> newGamma = new HashMap<>();
-                    newGamma.putAll(condGamma);
-                    newGamma.putAll(m);
-                    newSet.add(newGamma);
-                }
-            }*/
         }
         return new TypeMapFull(newSet, null);
     }
@@ -270,7 +229,7 @@ public class TypeMapFull extends TypeMapBase {
         return dictSet.toString();
     }
     @Override
-    public boolean equals(Object obj) { //Set<Map>>のequalsは期待通りに動作するのか？
+    public boolean equals(Object obj) {
         if (this == obj || obj != null && obj instanceof TypeMapFull) {
             TypeMapFull tm = (TypeMapFull)obj;
             Set<Map<String, AstType>> tmDictSet = tm.getDictSet();
@@ -280,7 +239,7 @@ public class TypeMapFull extends TypeMapBase {
             return false;
         }
     }
-    public void assignment(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
+    public void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
         Set<Map<String, AstType>> removeMap = new HashSet<>();
         Set<Map<String, AstType>> newSet = new HashSet<>();
         for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
@@ -302,19 +261,6 @@ public class TypeMapFull extends TypeMapBase {
             }
         }
         dictSet = newSet;
-    }
-
-    private static boolean contains(Map<String,AstType> target, Map<String,AstType> map){
-        for(String s : map.keySet()){
-            if(!target.containsKey(s)) return false;
-            AstType t = target.get(s);
-            if(t instanceof JSValueType){
-                if(!((JSValueType)t).isSuperOrEqual((JSValueType)map.get(s))) return false;
-            }else{
-                if(t != map.get(s)) return false;
-            }
-        }
-        return true;
     }
 
     public void add(String name, Map<Map<String, AstType>, AstType> map) {

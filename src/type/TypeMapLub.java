@@ -31,7 +31,10 @@ public class TypeMapLub extends TypeMapBase {
         return set;
     }
     public void addDispatch(String name){}
-    public void removeAllDispatch(){}
+    public void clearDispatch(){}
+    public Set<String> getDispatchSet(){
+        return new HashSet<String>(0);
+    }
     public void add(String name, AstType type){
         dict.put(name, type);
     }
@@ -95,7 +98,6 @@ public class TypeMapLub extends TypeMapBase {
     public TypeMapBase combine(TypeMapBase that) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
         Map<String, AstType> thatDict = getLubDict(that.getDictSet());
-        System.err.println(dict.toString());
         for (String v : dict.keySet()) {
             AstType t1 = dict.get(v);
             AstType t2 = thatDict.get(v);
@@ -219,7 +221,7 @@ public class TypeMapLub extends TypeMapBase {
         }
     }
 
-    public void assignment(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
+    public void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
         Set<Map<String, AstType>> removeMap = new HashSet<>();
         Set<Map<String, AstType>> newSet = new HashSet<>();
         for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
@@ -268,19 +270,6 @@ public class TypeMapLub extends TypeMapBase {
         dict = newGamma;
     }
 
-    private static boolean contains(Map<String,AstType> target, Map<String,AstType> map){
-        for(String s : map.keySet()){
-            if(!target.containsKey(s)) return false;
-            AstType t = target.get(s);
-            if(t instanceof JSValueType){
-                if(!((JSValueType)t).isSuperOrEqual((JSValueType)map.get(s))) return false;
-            }else{
-                if(t != map.get(s)) return false;
-            }
-        }
-        return true;
-    }
-
     public void add(String name, Map<Map<String, AstType>, AstType> map) {
         AstType type = AstType.BOT;
         for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
@@ -302,22 +291,3 @@ public class TypeMapLub extends TypeMapBase {
         return newExprTypeMap;
     }
 }
-
-/*
-
-public TypeMapLub(TypeMapBase typeMap){
-        this();
-        Set<Map<String, AstType>> dictSet = typeMap.getDictSet();
-
-        for(Map<String, AstType> m : dictSet){
-            for(String k : m.keySet()){
-                AstType t = dict.get(k);
-                if(t==null){
-                    dict.put(k, m.get(k));
-                }else{
-                    dict.replace(k, t.lub(m.get(k)));
-                }
-            }
-        }
-    }
-*/ 
