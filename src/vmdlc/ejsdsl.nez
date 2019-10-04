@@ -1,3 +1,12 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
+
 File       = _ { ( $(TopLevel) / _ )* #Source } EOT
 
 TopLevel   = Directive
@@ -30,7 +39,7 @@ LabelName = Name
 
 JSValueTypeName = 'JSValue' / 'Number' / 'Bool' / 'JSObject'
                 / 'String' / 'Fixnum' / 'Flonum' / 'Special' / 'SimpleObject' / 'Array' / 'Function'
-                / 'Builtin' / 'SimpleIterator' / 'Regexp' / 'StringObject' / 'NumberObject' / 'BooleanObject'
+                / 'Builtin' / 'Iterator' / 'Regexp' / 'StringObject' / 'NumberObject' / 'BooleanObject'
 
 ////////////////////////////////
 //// Block and Statement
@@ -39,7 +48,7 @@ Block = "{" { $(Statement)* #Block } "}"
 Statement = Block
           / Match
           / Return
-          / Assignment     // 順番が ExpressionStatement より前じゃないとだめ
+          / Assignment     // the order of important
           / ExpressionStatement
           / Declaration
           / If
@@ -119,7 +128,7 @@ ShiftExpression       = AdditiveExpression
 AdditiveExpression    = MultiplicativeExpression
                           {$left ("+" #Add / "-" #Sub)
                            $right(MultiplicativeExpression) }*
-MultiplicativeExpression = UnaryExpression {$left ("*" #Mul / "/" #Div )
+MultiplicativeExpression = UnaryExpression {$left ("*" #Mul / "/" #Div / "%" #Mod)
                                             $right(UnaryExpression) }*
 UnaryExpression = PostfixExpression
                 / { "+" $expr(PostfixExpression) #Plus }
@@ -199,7 +208,7 @@ Constant = Float
          / Char
          / Boolean
 
-Float = { DECIMAL_FLOAT FLOAT_SUFFIX? #Float } _
+Float = { [\-]? DECIMAL_FLOAT FLOAT_SUFFIX? #Float } _
 DECIMAL_FLOAT = FRACTION EXPONENT?
               / DIGIT+ EXPONENT
 FRACTION      = DIGIT* '.' DIGIT+
@@ -207,7 +216,7 @@ FRACTION      = DIGIT* '.' DIGIT+
 EXPONENT      = [eE] [+\-]? DIGIT+
 FLOAT_SUFFIX  = [flFL]
 
-Integer    = { (HEXICAL / DECIMAL / OCTAL) INT_SUFFIX? #Integer } _
+Integer    = { [\-]? (HEXICAL / DECIMAL / OCTAL) INT_SUFFIX? #Integer } _
 DECIMAL    = [1-9] DIGIT*
 HEXICAL    = '0' [xX] ( [0-9] / [A-F] / [a-f] )+
 OCTAL      = '0' [0-7]*
@@ -269,6 +278,9 @@ ObjectMemberAnnotation = { "embed" } _
 
 Ctypes = 'cint' !W
        / 'cdouble' !W
+       / 'cstring' !W
+       / 'Displacement' !W
+       / 'Subscript' !W
        / 'HeapObject' !W
 
 ////////////////////////////////
@@ -309,6 +321,7 @@ Ctypes = 'cint' !W
 "-" = '-' _
 "*" = '*' _
 "/" = '/' _
+"%" = '%' _
 "'" = '\'' _
 "==" = '==' _
 "!=" = '!=' _
@@ -495,7 +508,7 @@ return CintToFixnum(x1 >> x2);
 
 example Statement ~27 '''
 do (step oldfl+1) {
-      // regbase[oldfl] = JS_UNDEFINED をどう書くか
+      // regbase[oldfl] = JS_UNDEFINED
 }
 '''
 
@@ -503,8 +516,8 @@ example Statement ~24 '''
 Set_pc_relative(d);
 '''
 
-// Assignment を用意するかどうか検討
-// getargs.inc2 と getlocal.inc2 と mod.inc2 と new.inc2 と newargs.inc2 と setarg.inc2 と setlocal.inc2 で必要だが，do 文に付けてしまえないか
+// TODO: Assignment 
+// getargs.vmd, getlocal.vmd, mod.vmd, new.vmd, newargs.vmd, setarg.vmd, setlocal.vmd 
 example Statement ~21 '''
 do (cint i=0 step i+1) {
     if (link < i) {
@@ -514,12 +527,12 @@ do (cint i=0 step i+1) {
   }
 '''
 
-// newargs.inc2 と newframe.inc2 と setarray.inc2 と setlocal.inc2 にある書きかた
+// newargs.vmd ,newframe.vmd, setarray.vmd, setlocal.vmd
 example Statement ~25 '''
 args.body[i] <- Get_register(i + 2);
 '''
 
-// pophandler.inc2 にある書きかた
+// pophandler.vmd
 example Statement ~25 '''
 (newpc, handler_fp) <- Exhandler_stack_pop();
 '''

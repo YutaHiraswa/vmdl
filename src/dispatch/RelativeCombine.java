@@ -1,12 +1,10 @@
 /*
-   RelativeMerger.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-18
-     Hideya Iwasaki, 2016-18
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
  */
 package dispatch;
 
@@ -133,7 +131,7 @@ public class RelativeCombine {
             root.accept(gv);
             ArrayList<Node> nodes = gv.get();
 
-            
+
             /* sort */
             /*
             nodes.sort(new Comparator<Node>() {
@@ -154,11 +152,11 @@ public class RelativeCombine {
                     };
                     int a = ax.accept(v);
                     int b = bx.accept(v);
-                    
+
                     return a - b;
                 }
             });
-            */
+             */
             nodes.sort(new Comparator<Node>() {
                 @Override
                 public int compare(Node o1, Node o2) {

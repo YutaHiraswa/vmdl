@@ -99,37 +99,24 @@ externC Setlocal : (cint, Subscript, JSValue) -> void
 externC (needContext, triggerGC) Throw : void -> void
 externC NotImplemented : void -> void
 (vmInstruction, needContext, triggerGC, tailCall)
-add : (JSValue, JSValue) -> JSValue
-add (v1, v2) {
-  top: match (v1, v2) {
-    case (Fixnum v1 && Fixnum v2) {
-      cint s = FixnumToCint(v1) + FixnumToCint(v2);
-      return CintToNumber(s);
+call : (JSValue, cint) -> void
+call (fn, nargs) {
+  cint op = Get_opcode();
+  cint sendp = IsSend(op);
+  cint newp = IsNewSend(op);
+  Set_fp();
+  Set_pc();
+  Try_gc();
+  top: match (fn) {
+    case (Function fn) {
+      Call_function(fn, nargs, sendp);
+      Update_context();
+      Next_insn_noincpc();
     }
-    case (String v1 && ffs v2) {
-      String s = toString(v2);
-      rematch top(v1, s);
-    }
-    case (ffs v1 && String v2) {
-      String s = toString(v1);
-      rematch top(s, v2);
-    }
-    case (String v1 && String v2) {
-      return concat(v1, v2);
-    }
-    case (object v1 && ffss v2) {
-      JSValue u1 = toString(v1);
-      rematch top(u1, v2);
-    }
-    case (ffss v1 && object v2) {
-      JSValue u2 = toString(v2);
-      rematch top(v1, u2);
-    }
-    case (true)
-     {
-      cdouble u1 = toCdouble(v1);
-      cdouble u2 = toCdouble(v2);
-      return CdoubleToNumber(u1 + u2);
+    case (Builtin fn) {
+      Call_builtin(fn, nargs, sendp, newp);
+      Update_context();
+      Next_insn_incpc();
     }
   }
 }

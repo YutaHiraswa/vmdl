@@ -1,26 +1,29 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package vmdlc;
 
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
-import nez.util.ConsoleUtils;
 import nez.ast.Symbol;
 
 import java.util.HashMap;
 import java.util.Stack;
-import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.lang.Exception;
+import java.util.Arrays;
 
 import vmdlc.AstToCVisitor.DefaultVisitor;
 
 import dispatch.DispatchProcessor;
-import dispatch.RuleSetBuilder;
 import dispatch.DispatchPlan;
 import dispatch.RuleSet;
-import type.AstType.JSValueVMType;
 import type.TypeMapBase;
 import type.VMDataType;
 
@@ -43,10 +46,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             this.opNames = opNames;
         }
         String getHeadLabel() {
-            return "MATCH_HEAD_"+functionName+"_"+name;
+            String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, functionName);
+            return "MATCH_HEAD_"+labelPrefix+"_"+name;
         }
         String getTailLabel() {
-            return "MATCH_TAIL_"+functionName+"_"+name;
+            String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, functionName);
+            return "MATCH_TAIL_"+labelPrefix+"_"+name;
         }
         boolean hasMatchLabelOf(String label) {
             return matchLabel != null && matchLabel.equals(label);
@@ -55,6 +60,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     Stack<StringBuffer> outStack;
     Stack<MatchRecord> matchStack;
     String currentFunctionName;
+    OperandSpecifications opSpec;
 
     public AstToCVisitor() {
         init(AstToCVisitor.class, new DefaultVisitor());
@@ -62,7 +68,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         matchStack = new Stack<MatchRecord>();
     }
 
-    public String start(Tree<?> node) {
+    public String start(Tree<?> node, OperandSpecifications opSpec) {
+        this.opSpec = opSpec;
         try {
             outStack.push(new StringBuffer());
             for (Tree<?> chunk : node) {
@@ -73,8 +80,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             String program = sb.toString();
             return program;
         } catch (Exception e) {
-            e.printStackTrace(System.out);
-            return null;
+            e.printStackTrace();
+            throw new Error("visitor thrown an exception");
         }
     }
 
@@ -111,9 +118,10 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     private String getEpilogueLabel() {
-        return "L"+currentFunctionName+"_EPILOGUE";
+        String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
+        return "L"+labelPrefix+"_EPILOGUE";
     }
-    
+
     public class DefaultVisitor {
         public void accept(Tree<?> node, int indent) throws Exception {
             for (Tree<?> seq : node) {
@@ -131,13 +139,32 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             Tree<?> nameNode = node.get(Symbol.unique("name"));
             String name = nameNode.toText();
             currentFunctionName = name;
-            
+
             Tree<?> bodyNode = node.get(Symbol.unique("definition"));
             visit(bodyNode, indent);
         }
     }
     public class FunctionDefinition extends DefaultVisitor {
         public void accept(Tree<?> node, int indent) throws Exception {
+            Tree<?> funNameNode = node.get(Symbol.unique("name"));
+            Tree<?> paramsNode = node.get(Symbol.unique("params"));
+            String[] jsvParams = new String[paramsNode.size()];
+            int jsvNum = 0;
+
+            for (int i = 0; i < paramsNode.size(); i++) {
+                String paramName = paramsNode.get(i).toText();
+                // JSValue parameter's name starts with v as defined in InstructionDefinitions.java
+                if (paramName.startsWith("v")) {
+                    jsvParams[jsvNum++] = paramName;
+                }
+            }
+            println("DEFLABEL(HEAD):");
+            print("INSN_COUNT" + jsvNum + "(" + funNameNode.toText());
+            for (int i = 0; i < jsvNum; i++) {
+                print("," + jsvParams[i]);
+            }
+            println(");");
+
             Tree<?> bodyNode = node.get(Symbol.unique("body"));
             visit(bodyNode, indent);
         }
@@ -147,7 +174,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(Tree<?> node, int indent) throws Exception {
         }
     }
-    
+
     public class Block extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
@@ -164,16 +191,34 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             String[] formalParams = mp.getFormalParams();
             String label = mp.getLabel();
             TypeMapBase dict = ((SyntaxTree) node).getTypeMap();
-            
+
             println("/* "+dict.toString()+" */");
-            
+
             matchStack.add(new MatchRecord(currentFunctionName, label, node.getLineNum(), formalParams));
-            print(matchStack.peek().getHeadLabel()+":");
-            
+            print(matchStack.peek().getHeadLabel()+":"+"\n");
+
             Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
+
+            Set<VMDataType[]> dontCareInput = opSpec.getUnspecifiedOperands(currentFunctionName);
+            Set<VMDataType[]> errorInput = opSpec.getErrorOperands(currentFunctionName);
+            Set<RuleSet.OperandDataTypes> errorConditions = new HashSet<RuleSet.OperandDataTypes>();
+
+            Set<VMDataType[]> removeSet = new HashSet<VMDataType[]>();
+            for (VMDataType[] dts: dontCareInput) {
+                removeSet.add(dts);
+            }
+            for (VMDataType[] dts: errorInput) {
+                removeSet.add(dts);
+                errorConditions.add(new RuleSet.OperandDataTypes(dts));
+            }
+            String errorAction = new String("LOG_EXIT(\"unexpected operand type\\n\");\n");
+            if (errorConditions.size() > 0) {
+                rules.add(new RuleSet.Rule(errorAction, errorConditions));
+            }
+
             for (int i = 0; i < mp.size(); i++) {
                 Set<VMDataType[]> vmtVecs = mp.getVmtVecCond(i);
-                if (!Option.disableMatchOptimisation())
+                if (!Main.option.disableMatchOptimisation())
                     vmtVecs = dict.filterTypeVecs(formalParams, vmtVecs);
                 if (vmtVecs.size() == 0)
                     continue;
@@ -183,10 +228,15 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 Tree<?> stmt = mp.getBodyAst(i);
                 visit(stmt, 0);
                 String action = outStack.pop().toString();
-                
+
                 /* OperandDataTypes set */
                 Set<RuleSet.OperandDataTypes> odts = new HashSet<RuleSet.OperandDataTypes>();
-                for (VMDataType[] vmtVec: vmtVecs) {
+                NEXT_VMDT: for (VMDataType[] vmtVec: vmtVecs) {
+                    for (VMDataType[] remove : removeSet) {
+                        if (Arrays.equals(vmtVec, remove)) {
+                            continue NEXT_VMDT;
+                        }
+                    }
                     RuleSet.OperandDataTypes odt = new RuleSet.OperandDataTypes(vmtVec);
                     odts.add(odt);
                 }
@@ -202,16 +252,20 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                     }
                     action = sb.toString() + action;
                 }
+
                 RuleSet.Rule r = new RuleSet.Rule(action, odts);
                 rules.add(r);
             }
+
             RuleSet rs = new RuleSet(formalParams, rules);
-            
-            DispatchPlan dp = new DispatchPlan(formalParams.length, false);
+
+            DispatchPlan dp = new DispatchPlan(Main.option);
             DispatchProcessor dispatchProcessor = new DispatchProcessor();
-            dispatchProcessor.setLabelPrefix(currentFunctionName + "_"+ matchStack.peek().name + "_");
-            String s = dispatchProcessor.translate(rs, dp);
+            String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
+            dispatchProcessor.setLabelPrefix(labelPrefix + "_"+ matchStack.peek().name + "_");
+            String s = dispatchProcessor.translate(rs, dp, Main.option, currentFunctionName);
             println(s);
+
             println(matchStack.pop().getTailLabel()+": ;");
         }
     }
@@ -257,7 +311,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             Tree<?> fname = rightNode.get(Symbol.unique("recv"));
             print(fname.toText());
             print("(");
-            
+
             for (Tree<?> child : rightNode) {
                 if (child.is(Symbol.unique("ArgList"))) {
                     int i = 0;
@@ -273,7 +327,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                     }
                     print("&");
                     visit(leftNode.get(j), 0);
-                    
+
                     break;
                 }
             }
@@ -357,7 +411,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(Tree<?> node, int indent) throws Exception {
             Tree<?> targetNode = node.get(Symbol.unique("label"));
             String target = targetNode.toText();
-            
+
             println("{");
             for (int i = matchStack.size() - 1; i >= 0; i--) {
                 MatchRecord mr = matchStack.elementAt(i);
@@ -378,7 +432,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             throw new Error("no rematch target:"+ target);
         }
     }
-    
+
     public class Trinary extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
@@ -492,6 +546,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             printOperator(node, "/");
+        }
+    }
+    public class Mod extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, int indent) throws Exception {
+            printOperator(node, "%");
         }
     }
     public class Plus extends DefaultVisitor {
@@ -624,8 +684,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             HashMap<String, String> varmap = new HashMap<String, String>();
-            varmap.put("cint", "cint");
+            varmap.put("cint", "int");
             varmap.put("cdouble", "double");
+            varmap.put("cstring", "char*");
+            varmap.put("Displacement", "Displacement");
+            varmap.put("Subscript", "Subscript");
             print(varmap.get(node.toText()));
         }
     }
@@ -637,12 +700,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             print("\"");
         }
     }
-    
+
     /*
     public class Trinary extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
         }
     }
-    */
+     */
 }

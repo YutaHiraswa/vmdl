@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package type;
 
 import java.util.Arrays;
@@ -14,7 +22,7 @@ public abstract class VMDataTypeVecSet {
     public String[] getVarNames() {
         return varNames;
     }
-    
+
     protected int lookup(String varName) {
         for (int i = 0; i < varNames.length; i++)
             if (varNames[i].equals(varName))
@@ -32,7 +40,7 @@ public abstract class VMDataTypeVecSet {
             super(varNames);
             this.dtsSet = dtsSet;
         }
-        
+
         @Override
         public AstType getMostSpecificType(String vn) {
             return getMostSpecificTypeFromSet(dtsSet, vn);
@@ -50,7 +58,7 @@ public abstract class VMDataTypeVecSet {
             super(varNames);
             this.types = types;
         }
-        
+
         @Override
         public AstType getMostSpecificType(String vn) {
             int index = lookup(vn);
@@ -81,21 +89,10 @@ public abstract class VMDataTypeVecSet {
 
         @Override
         public Set<VMDataType[]> getTuples() {
-            int length = types.length;
-            VMDataType[] vec = new VMDataType[length];
-            for(int i=0; i<length; i++){
-                if(types[i] instanceof JSValueVMType){
-                    vec[i] = ((JSValueVMType)types[i]).getVMDataType();
-                }else{
-                    throw new Error("ByCommonTypes has not JSValueVMType element");
-                }
-            }
-            HashSet<VMDataType[]> set = new HashSet<>();
-            set.add(vec);
-            return set;
+            throw new Error("to be implemented");
         }
     }
-    
+
     protected AstType getMostSpecificTypeFromSet(Set<VMDataType[]> dtss, String vn) {
         final JSValueType jsv = JSValueType.get("JSValue");
         int index = lookup(vn);

@@ -31,7 +31,7 @@ public abstract class TypeMapBase {
     public abstract void add(Set<Map<String, AstType>> set);
     public abstract boolean containsKey(String key);
     public abstract Set<String> getKeys();
-    public abstract TypeMapBase select(Collection<String> domain); //TODO: CollectionとSetの違いについて調べる
+    public abstract TypeMapBase select(Collection<String> domain);
     public abstract TypeMapBase clone();
     public Set<AstType> getExprType(Map<String, AstType> key) {
         Set<AstType> tempSet = new HashSet<>();

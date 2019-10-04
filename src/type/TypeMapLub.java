@@ -272,9 +272,9 @@ public class TypeMapLub extends TypeMapBase {
 
     public void add(String name, Map<Map<String, AstType>, AstType> map) {
         AstType type = AstType.BOT;
-        for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
+        for(Map<String,AstType> exprMap : map.keySet()){
             if(contains(dict, exprMap)){
-                type = type.lub(exprTypeMap.get(exprMap));
+                type = type.lub(map.get(exprMap));
             }
         }
         dict.put(name, type);

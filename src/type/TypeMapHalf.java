@@ -109,9 +109,9 @@ public class TypeMapHalf extends TypeMapFull {
             for(String s : m.keySet()){
                 AstType lubType = lubTypeMap.get(s);
                 if(lubType==null){
-                    newGamma.put(s, m.get(s)); //ディスパッチ対象の変数
+                    newGamma.put(s, m.get(s));
                 }else{
-                    newGamma.put(s, lubType); //ディスパッチ対象でない変数
+                    newGamma.put(s, lubType);
                 }
             }
             newSet.add(newGamma);
@@ -121,9 +121,9 @@ public class TypeMapHalf extends TypeMapFull {
             for(String s : m.keySet()){
                 AstType lubType = lubTypeMap.get(s);
                 if(lubType==null){
-                    newGamma.put(s, m.get(s)); //ディスパッチ対象の変数
+                    newGamma.put(s, m.get(s));
                 }else{
-                    newGamma.put(s, lubType); //ディスパッチ対象でない変数
+                    newGamma.put(s, lubType);
                 }
             }
             newSet.add(newGamma);

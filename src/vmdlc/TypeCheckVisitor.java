@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package vmdlc;
 
 import nez.ast.Tree;
@@ -37,7 +45,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 return name;
             }
         }
-        
+
         Stack<MatchRecord> stack;
         public MatchStack() {
             stack = new Stack<MatchRecord>();
@@ -50,7 +58,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             return null;
         }
-        
+
         public void enter(String name, String[] formalParams, TypeMapBase dict) {
             MatchRecord mr = new MatchRecord(name, formalParams, dict);
             stack.push(mr);
@@ -85,11 +93,11 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
     MatchStack matchStack;
-    
+
     OperandSpecifications opSpec;
 
     public static TypeMapBase TYPE_MAP;
-    
+
     public TypeCheckVisitor() {
         init(TypeCheckVisitor.class, new DefaultVisitor());
     }
@@ -117,6 +125,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         System.err.println(node.toString());
         System.err.println("----");
         System.err.println(dict.toString());
+        System.err.println("----");
+        System.err.println(dict.getExprTypeMap().toString());
         */
         return find(node.getTag().toString()).accept(node, dict);
     }
@@ -141,72 +151,72 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             SyntaxTree type = node.get(Symbol.unique("type"));
             AstProductType funtype = (AstProductType)AstType.nodeToType((SyntaxTree)type);
-            
+
             SyntaxTree definition = node.get(Symbol.unique("definition"));
-            
+
             SyntaxTree nodeName = node.get(Symbol.unique("name"));
             SyntaxTree nameNode = definition.get(Symbol.unique("name"));
             String name = nameNode.toText();
             dict.add(name, funtype);
-            
+
             Set<String> domain = new HashSet<String>(dict.getKeys());
 
             TypeMapBase newDict = dict.clone();
 
             /* add non-JSValue parameters */
             SyntaxTree paramsNode = definition.get(Symbol.unique("params"));
-            String[] paramNames = new String[paramsNode.size()];
-            String[] jsvParamNames = new String[paramsNode.size()];
-            AstType paramTypes = funtype.getDomain();
-            int nJsvTypes = 0;
-            if (paramTypes instanceof AstBaseType) {
-                AstType paramType = paramTypes;
-                String paramName = paramsNode.get(0).toText();
-                paramNames[0] = paramName;
-                if (paramType instanceof JSValueType)
-                    jsvParamNames[nJsvTypes++] = paramName;
-                else
-                    newDict.add(paramName, paramType);
-            } else if (paramTypes instanceof AstPairType) {
-                List<AstType> paramTypeList = ((AstPairType) paramTypes).getTypes();
-                for (int i = 0; i < paramTypeList.size(); i++) {
-                    AstType paramType = paramTypeList.get(i);
-                    String paramName = paramsNode.get(i).toText();
-                    paramNames[i] = paramName;
+            if (paramsNode != null && paramsNode.size() != 0) {
+                String[] paramNames = new String[paramsNode.size()];
+                String[] jsvParamNames = new String[paramsNode.size()];
+                AstType paramTypes = funtype.getDomain();
+                int nJsvTypes = 0;
+                if (paramTypes instanceof AstBaseType) {
+                    AstType paramType = paramTypes;
+                    String paramName = paramsNode.get(0).toText();
+                    paramNames[0] = paramName;
                     if (paramType instanceof JSValueType)
                         jsvParamNames[nJsvTypes++] = paramName;
                     else
                         newDict.add(paramName, paramType);
+                } else if (paramTypes instanceof AstPairType) {
+                    List<AstType> paramTypeList = ((AstPairType) paramTypes).getTypes();
+                    for (int i = 0; i < paramTypeList.size(); i++) {
+                        AstType paramType = paramTypeList.get(i);
+                        String paramName = paramsNode.get(i).toText();
+                        paramNames[i] = paramName;
+                        if (paramType instanceof JSValueType)
+                            jsvParamNames[nJsvTypes++] = paramName;
+                        else
+                            newDict.add(paramName, paramType);
+                    }
+                }
+
+                /* add JSValue parameters (apply operand spec) */
+                if (nJsvTypes > 0) {
+                    String[] jsvParamNamesPacked = new String[nJsvTypes];
+                    System.arraycopy(jsvParamNames, 0, jsvParamNamesPacked, 0, nJsvTypes);
+                    VMDataTypeVecSet vtvs = opSpec.getAccept(name, jsvParamNamesPacked);
+                    Set<VMDataType[]> tupleSet = vtvs.getTuples();
+                    String[] variableStrings = vtvs.getVarNames();
+                    int length = variableStrings.length;
+                    Set<Map<String, AstType>> newDictSet = new HashSet<>();
+                    for(VMDataType[] vec : tupleSet){
+                        Map<String, AstType> tempMap = new HashMap<>();
+                        for(int i=0; i<length; i++){
+                            tempMap.put(variableStrings[i], AstType.get(vec[i]));
+                        }
+                        newDictSet.add(tempMap);
+                    }
+                    newDict.add(newDictSet);
                 }
             }
 
-            /* add JSValue parameters (apply operand spec) */
-            if (nJsvTypes > 0) {
-                String[] jsvParamNamesPacked = new String[nJsvTypes];
-                System.arraycopy(jsvParamNames, 0, jsvParamNamesPacked, 0, nJsvTypes);
-                VMDataTypeVecSet vtvs = opSpec.getAccept(name, paramNames);
-                //VMDataTypeVecSetをTypeMapBaseに追加
-                Set<VMDataType[]> tupleSet = vtvs.getTuples();
-                String[] variableStrings = vtvs.getVarNames();
-                int length = variableStrings.length;
-                Set<Map<String, AstType>> newDictSet = new HashSet<>();
-                for(VMDataType[] vec : tupleSet){
-                    Map<String, AstType> tempMap = new HashMap<>();
-                    for(int i=0; i<length; i++){
-                        tempMap.put(variableStrings[i], AstType.get(vec[i]));
-                    }
-                    newDictSet.add(tempMap);
-                }
-                newDict.add(newDictSet);
-            }
-            
             SyntaxTree body = (SyntaxTree)definition.get(Symbol.unique("body"));
             dict = visit((SyntaxTree)body, newDict);
 
             save(nameNode, dict);
             save(nodeName, dict);
             save(paramsNode, dict);
-
             return dict.select((Set<String>)domain);
         }
         public void saveType(SyntaxTree node, TypeMapBase dict) throws Exception {
@@ -274,12 +284,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 matchStack.enter(label, mp.getFormalParams(), entryDict);
                 System.out.println("entry = "+entryDict.select(formalParams));
                 for (int i = 0; i < mp.size(); i++) {
-                    TypeMapBase dictCaseIn = entryDict.enterCase(mp.getFormalParams(), mp.getVMDataTypeVecSet(i));
+                    TypeMap dictCaseIn = entryDict.enterCase(mp.getFormalParams(), mp.getVMDataTypeVecSet(i));
                     System.out.println("case in = "+dictCaseIn.select(formalParams));
                     if (dictCaseIn.hasBottom())
                         continue;
                     SyntaxTree body = mp.getBodyAst(i);
-                    TypeMapBase dictCaseOut = visit(body, dictCaseIn);
+                    TypeMap dictCaseOut = visit(body, dictCaseIn);
                     System.out.println("case "+" = "+dictCaseOut.select(formalParams));
                     System.out.println(body.toText());
                     outDict = outDict.lub(dictCaseOut);
@@ -319,19 +329,20 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 throw new Error("match label not found: "+label);
             Set<String> domain = matchDict.getKeys();
             String[] matchParams = matchStack.getParams(label);
-            
+
             String[] rematchArgs = new String[matchParams.length];
             for (int i = 1; i < node.size(); i++) {
                 rematchArgs[i-1] = node.get(i).toText();
             }
-            
+
             TypeMapBase matchDict2 = dict.rematch(matchParams, rematchArgs, domain);
             TypeMapBase result = matchDict2.combine(matchDict);
             matchStack.updateDict(label, result);
+
             return dict.getBottomDict();
         }
     }
-    
+
     public class Return extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
@@ -408,7 +419,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             TypeMapBase copyDict = dict.clone();
             SyntaxTree thenNode = node.get(Symbol.unique("then"));
-            
+
             TypeMapBase thenDict = visit(thenNode, dict);
             SyntaxTree elseNode = node.get(Symbol.unique("else"));
             TypeMapBase resultDict;
@@ -455,7 +466,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
             AstType type = AstType.get(typeNode.toText());
             dict.add(varNode.toText(), type);
-            
+
             return dict;
         }
     }
@@ -469,7 +480,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree nameNode = node.get(Symbol.unique("name"));
             AstType type = new AstProductType(domain, range);
             dict.add(nameNode.toText(), type);
-            
+
             return dict;
         }
     }
@@ -481,7 +492,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree varNode = node.get(Symbol.unique("var"));
             AstType type = AstType.get(typeNode.toText());
             dict.add(varNode.toText(), type);
-            
+
             return dict;
         }
     }
@@ -613,47 +624,18 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 			return tempMap;
         }
     }
-    
+
     AstType tCint = AstType.get("cint");
     AstType tCdouble = AstType.get("cdouble");
-    
-    private Map<Map<String,AstType>,AstType> numberOperator(SyntaxTree node, TypeMapBase dict) throws Exception {
-        SyntaxTree leftNode = node.get(Symbol.unique("left"));
-        SyntaxTree rightNode = node.get(Symbol.unique("right"));
-        Set<Map<String,AstType>> lExprTypeMapCint    = visit(leftNode, dict).getKeySetValueOf(tCint);
-        Set<Map<String,AstType>> lExprTypeMapCdouble = visit(leftNode, dict).getKeySetValueOf(tCdouble);
-        Set<Map<String,AstType>> rExprTypeMapCint    = visit(rightNode, dict).getKeySetValueOf(tCint);
-        Set<Map<String,AstType>> rExprTypeMapCdouble = visit(rightNode, dict).getKeySetValueOf(tCdouble);
-        List<Set<Map<String,AstType>>> keySetSetArray = new ArrayList<>();
-        keySetSetArray.add(lExprTypeMapCint);
-        keySetSetArray.add(lExprTypeMapCdouble);
-        keySetSetArray.add(rExprTypeMapCint);
-        keySetSetArray.add(rExprTypeMapCdouble);
-        int index[][] = {{0, 2}, {0, 3}, {1, 2}, {1, 3}};
-        int indexLength = index.length;
-        Set<Map<String,AstType>> newCintKeySet = new HashSet<>();
-        for(Map<String,AstType> m1 : keySetSetArray.get(index[0][0])){
-            for(Map<String,AstType> m2 : keySetSetArray.get(index[0][1])){
-                Map<String,AstType> tempMap = new HashMap<>(m1);
-                for(String name : m2.keySet()){
-                    if(!m1.containsKey(name)){
-                        tempMap.put(name, m2.get(name));
-                        continue;
-                    }
-                    if(m1.get(name)!=m2.get(name)){
-                        tempMap = null;
-                        break;
-                    }
-                }
-                if(tempMap!=null){
-                    newCintKeySet.add(tempMap);
-                }
-            }
-        }
-        Set<Map<String,AstType>> newCdoubleKeySet = new HashSet<>();
-        for(int i=1; i<indexLength; i++){
-            for(Map<String,AstType> m1 : keySetSetArray.get(index[i][0])){
-                for(Map<String,AstType> m2 : keySetSetArray.get(index[i][1])){
+    AstType tCstring = AstType.get("cstring");
+    AstType tSubscript = AstType.get("Subscript");
+
+    private Set<Map<String,AstType>> getKeySet(int[][] combiIndex, List<Set<Map<String,AstType>>> lKeySetSetList, List<Set<Map<String,AstType>>> rKeySetSetList){
+        int combiIndexSize = combiIndex.length;
+        Set<Map<String,AstType>> newKeySet = new HashSet<>();
+        for(int i=0; i< combiIndexSize; i++){
+            for(Map<String,AstType> m1 : lKeySetSetList.get(combiIndex[i][0])){
+                for(Map<String,AstType> m2 : rKeySetSetList.get(combiIndex[i][1])){
                     Map<String,AstType> tempMap = new HashMap<>(m1);
                     for(String name : m2.keySet()){
                         if(!m1.containsKey(name)){
@@ -666,11 +648,34 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                         }
                     }
                     if(tempMap!=null){
-                        newCdoubleKeySet.add(tempMap);
+                        newKeySet.add(tempMap);
                     }
                 }
             }
         }
+        return newKeySet;
+    }
+
+    private Map<Map<String,AstType>,AstType> numberOperator(SyntaxTree node, TypeMapBase dict) throws Exception {
+        final int CINT      = 0;
+        final int CDOUBLE   = 1;
+        final int SUBSCRIPT = 2;
+        AstType typeArray[] = {tCint, tCdouble, tSubscript};
+        int typeArrayLength = typeArray.length;
+        int cintCombiIndex[][]    = {{CINT, CINT}, {CINT, SUBSCRIPT}, {SUBSCRIPT, CINT}, {SUBSCRIPT, SUBSCRIPT}};
+        int cdoubleCombiIndex[][] = {{CINT, CDOUBLE}, {CDOUBLE, CINT}, {SUBSCRIPT, CDOUBLE}, {SUBSCRIPT, CDOUBLE}, {CDOUBLE, CDOUBLE}};
+        SyntaxTree leftNode = node.get(Symbol.unique("left"));
+        SyntaxTree rightNode = node.get(Symbol.unique("right"));
+        TypeMapBase lTypeMap = visit(leftNode, dict);
+        TypeMapBase rTypeMap = visit(rightNode, dict);
+        List<Set<Map<String,AstType>>> lKeySetSetList = new ArrayList<>();
+        List<Set<Map<String,AstType>>> rKeySetSetList = new ArrayList<>();
+        for(int i=0; i<typeArrayLength; i++){
+            lKeySetSetList.add(lTypeMap.getKeySetValueOf(typeArray[i]));
+            rKeySetSetList.add(rTypeMap.getKeySetValueOf(typeArray[i]));
+        }
+        Set<Map<String,AstType>> newCintKeySet = getKeySet(cintCombiIndex, lKeySetSetList, rKeySetSetList);
+        Set<Map<String,AstType>> newCdoubleKeySet = getKeySet(cdoubleCombiIndex, lKeySetSetList, rKeySetSetList);
         Map<Map<String,AstType>,AstType> newExprTypeMap = new HashMap<>();
         for(Map<String,AstType> m : newCintKeySet){
             newExprTypeMap.put(m, tCint);
@@ -683,7 +688,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
         return newExprTypeMap;
     }
-
     private Map<Map<String,AstType>,AstType> bitwiseOperator(SyntaxTree node, TypeMapBase dict) throws Exception {
         SyntaxTree leftNode = node.get(Symbol.unique("left"));
         Map<Map<String,AstType>,AstType> lExprTypeMap = visit(leftNode, dict).getExprTypeMap();
@@ -731,6 +735,15 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
     public class Div extends DefaultVisitor {
+        @Override
+        public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
+            Map<Map<String,AstType>,AstType> exprTypeMap = numberOperator(node, dict);
+            TypeMapBase tempMap = TYPE_MAP.clone();
+			tempMap.setExprTypeMap(exprTypeMap);
+			return tempMap;
+        }
+    }
+    public class Mod extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             Map<Map<String,AstType>,AstType> exprTypeMap = numberOperator(node, dict);

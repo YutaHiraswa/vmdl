@@ -99,37 +99,49 @@ externC Setlocal : (cint, Subscript, JSValue) -> void
 externC (needContext, triggerGC) Throw : void -> void
 externC NotImplemented : void -> void
 (vmInstruction, needContext, triggerGC, tailCall)
-add : (JSValue, JSValue) -> JSValue
-add (v1, v2) {
+div : (JSValue, JSValue) -> JSValue
+div (v1, v2) {
   top: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {
-      cint s = FixnumToCint(v1) + FixnumToCint(v2);
-      return CintToNumber(s);
+      cint n1 = FixnumToCint(v1);
+      if (IsFixnumZero(v2)) {
+          if (n1 > 0) {
+              return Flonum_Infinity();
+          } else if (n1 == 0) {
+              return Flonum_Nan();
+          } else {
+              return Flonum_NegInfinity();
+          }
+      } else {
+        cint n2 = FixnumToCint(v2);
+        cint s = n1 / n2;
+        return (n1 == n2 * s) ? CintToFixnum(s) : CdoubleToFlonum(FixnumToCdouble(v1) / FixnumToCdouble(v2));
+      }
     }
-    case (String v1 && ffs v2) {
-      String s = toString(v2);
-      rematch top(v1, s);
+    case (Fixnum v1 && Flonum v2 || Flonum v1 && Fixnum v2 || Flonum v1 && Flonum v2) {
+      cdouble x1 = toCdouble(v1);
+      cdouble x2 = toCdouble(v2);
+      cdouble d = x1 / x2;
+      if (IsFlonumInfinity(CdoubleToFlonum(d))) {
+          return d > 0 ? Flonum_Infinity() : Flonum_NegInfinity();
+      } else if (IsFlonumNan(CdoubleToFlonum(d))) {
+          return Flonum_Nan();
+      } else {
+          return CdoubleToNumber(d);
+      }
     }
-    case (ffs v1 && String v2) {
-      String s = toString(v1);
-      rematch top(s, v2);
+    case (number v1) {
+        Number u2 = toNumber(v2);
+        rematch top(v1, u2);
     }
-    case (String v1 && String v2) {
-      return concat(v1, v2);
+    case (number v2) {
+        Number u1 = toNumber(v1);
+        rematch top(u1, v2);
     }
-    case (object v1 && ffss v2) {
-      JSValue u1 = toString(v1);
-      rematch top(u1, v2);
-    }
-    case (ffss v1 && object v2) {
-      JSValue u2 = toString(v2);
-      rematch top(v1, u2);
-    }
-    case (true)
-     {
-      cdouble u1 = toCdouble(v1);
-      cdouble u2 = toCdouble(v2);
-      return CdoubleToNumber(u1 + u2);
+    case (true) {
+      Number u1 = toNumber(v1);
+      Number u2 = toNumber(v2);
+      rematch top(u1, u2);
     }
   }
 }

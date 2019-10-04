@@ -16,7 +16,7 @@
   
   <target name="compile" depends="init">
     <javac srcdir="${src}" destdir="${bin}" classpathref="classpath"
-          includeantruntime="false">
+          includeantruntime="false" debug="true">
       <compilerarg value="-Xlint:unchecked" />
     </javac>
   </target>
@@ -30,11 +30,6 @@
     </jar>
   </target>
 
-  <target name="oldinsngen" depends="compile">
-    <jar jarfile="oldinsngen.jar" basedir="${bin}"
-          manifest="manifest/oldinsngen.mf"/>
-  </target>
-  
   <target name="clean">
     <delete dir="${bin}"/>
   </target>

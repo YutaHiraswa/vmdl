@@ -264,18 +264,22 @@ public class TypeMapFull extends TypeMapBase {
     }
 
     public void add(String name, Map<Map<String, AstType>, AstType> map) {
-        for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
+        Set<Map<String,AstType>> newDictSet = new HashSet<>();
+        for(Map<String,AstType> exprMap : map.keySet()){
             for(Map<String,AstType> dictMap : dictSet){
                 if(contains(dictMap, exprMap)){
                     Map<String,AstType> newMap = new HashMap<>();
                     for(String s : dictMap.keySet()){
                         newMap.put(s, dictMap.get(s));
                     }
-                    newMap.put(name, exprTypeMap.get(exprMap));
-                    dictSet.add(newMap);
+                    newMap.put(name, map.get(exprMap));
+                    newDictSet.add(newMap);
+                }else{
+                    newDictSet.add(dictMap);
                 }
             }
         }
+        dictSet = newDictSet;
     }
 
     public Map<Map<String, AstType>, AstType> combineExprTypeMap(Map<Map<String, AstType>, AstType> exprTypeMap1, Map<Map<String, AstType>, AstType> exprTypeMap2) {
