@@ -8,7 +8,6 @@ import type.AstType;
 import type.TypeMapBase;
 import vmdlc.SyntaxTree;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.Map;
 

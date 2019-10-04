@@ -19,7 +19,7 @@ import nez.ast.SourceError;
 import type.*;
 import vmdlc.AlphaConvVisitor;
 import vmdlc.AstToCVisitor;
-import vmdlc.TypeCheckPreProcessVisitor;
+import vmdlc.DispatchVarCheckVisitor;
 import vmdlc.SyntaxTree;
 import vmdlc.TypeCheckVisitor;
 
@@ -122,7 +122,7 @@ public class Main {
         SyntaxTree ast = parse(sourceFile);
         
         new DesugarVisitor().start(ast);
-        new TypeCheckPreProcessVisitor().start(ast);
+        new DispatchVarCheckVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true);
         new TypeCheckVisitor().start(ast, opSpec, TYPE_MAPS[typeMapIndex-1]);
         String program = new AstToCVisitor().start(ast);
