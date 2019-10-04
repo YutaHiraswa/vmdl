@@ -33,7 +33,7 @@ public class Main {
 
     static final TypeMapBase[] TYPE_MAPS = {
         new TypeMapLub(),
-        new TypeMapHybrid(),
+        new TypeMapHalf(),
         new TypeMapFull()
     };
     

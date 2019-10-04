@@ -17,9 +17,6 @@ import vmdlc.TypeCheckVisitor.DefaultVisitor;
 import type.AstType.*;
 import type.AstType;
 import type.TypeMapBase;
-import type.TypeMapHybrid;
-import type.TypeMapFull;
-import type.TypeMapLub;
 import type.VMDataType;
 import type.VMDataTypeVecSet;
 

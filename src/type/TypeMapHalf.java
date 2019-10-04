@@ -9,22 +9,22 @@ import java.util.Set;
 import type.AstType.AstBaseType;
 import type.AstType.JSValueType;
 
-public class TypeMapHybrid extends TypeMapFull {
+public class TypeMapHalf extends TypeMapFull {
     Set<String> dispatchSet;
 
-    public TypeMapHybrid(){
+    public TypeMapHalf(){
         dictSet = new HashSet<>();
         dispatchSet = new HashSet<>();
         dictSet.add(new HashMap<String, AstType>());
     }
 
-    public TypeMapHybrid(Map<Map<String, AstType>, AstType> _exprTypeMap){
+    public TypeMapHalf(Map<Map<String, AstType>, AstType> _exprTypeMap){
         super(_exprTypeMap);
         dictSet = new HashSet<>();
         dispatchSet = new HashSet<>();
         dictSet.add(new HashMap<String, AstType>());
     }
-    public TypeMapHybrid(Set<Map<String, AstType>> _dictSet, Set<String> _dispatchSet){
+    public TypeMapHalf(Set<Map<String, AstType>> _dictSet, Set<String> _dispatchSet){
         dictSet = _dictSet;
         dispatchSet = _dispatchSet;
     }
@@ -58,7 +58,7 @@ public class TypeMapHybrid extends TypeMapFull {
         for(String s : dispatchSet){
             newDispatchSet.add(s);
         }
-        return new TypeMapHybrid(selectedSet, newDispatchSet);
+        return new TypeMapHalf(selectedSet, newDispatchSet);
     }
     @Override
     public TypeMapBase clone(){
@@ -74,7 +74,7 @@ public class TypeMapHybrid extends TypeMapFull {
         for(String s : dispatchSet){
             newDispatchSet.add(s);
         }
-        return new TypeMapHybrid(newSet, newDispatchSet);
+        return new TypeMapHalf(newSet, newDispatchSet);
     }
     private AstType getLubType(Set<AstType> set){
         AstType result = AstType.BOT;
@@ -95,12 +95,10 @@ public class TypeMapHybrid extends TypeMapFull {
         Set<Map<String, AstType>> newSet = new HashSet<>();
         Set<String> newDispatchSet = new HashSet<>();
         Map<String, AstType> lubTypeMap = new HashMap<>();
-        if(!dispatchSet.equals(that.getDispatchSet())){
-            throw new Error("Failure combine: different dispatch set");
-        }
+        Set<String> thatDispatchSet = that.getDispatchSet();
         for(Map<String, AstType> m : dictSet){
             for(String s : m.keySet()){
-                if(dispatchSet.contains(s)) continue; //thatのディスパッチ対象は見る必要がある？
+                if(dispatchSet.contains(s)||thatDispatchSet.contains(s)) continue;
                 Set<AstType> typeSet = this.get(s);
                 typeSet.addAll(that.get(s));
                 lubTypeMap.put(s, getLubType(typeSet));
@@ -133,7 +131,7 @@ public class TypeMapHybrid extends TypeMapFull {
         for(String s : dispatchSet){
             newDispatchSet.add(s);
         }
-        return new TypeMapHybrid(newSet, newDispatchSet);
+        return new TypeMapHalf(newSet, newDispatchSet);
     }
     private int indexOf(String[] varNames, String v) {
         for (int i = 0; i < varNames.length; i++) {
@@ -180,7 +178,7 @@ public class TypeMapHybrid extends TypeMapFull {
         for(String s : dispatchSet){
             newDispatchSet.add(s);
         }
-        return new TypeMapHybrid(newSet, newDispatchSet);
+        return new TypeMapHalf(newSet, newDispatchSet);
     }
     public TypeMapBase rematch(String[] params, String[] args, Set<String> domain){
         Set<Map<String, AstType>> newSet = new HashSet<>();
@@ -200,7 +198,7 @@ public class TypeMapHybrid extends TypeMapFull {
         for(String s : dispatchSet){
             newDispatchSet.add(s);
         }
-        return new TypeMapHybrid(newSet, newDispatchSet);
+        return new TypeMapHalf(newSet, newDispatchSet);
     }
     public TypeMapBase getBottomDict(){
         Set<String> domain = getKeys();
@@ -210,7 +208,7 @@ public class TypeMapHybrid extends TypeMapFull {
             newGamma.put(v, AstType.BOT);
         }
         newSet.add(newGamma);
-        return new TypeMapHybrid(newSet, new HashSet<String>());
+        return new TypeMapHalf(newSet, new HashSet<String>());
     }
     @Override
     public String toString() {
@@ -218,8 +216,8 @@ public class TypeMapHybrid extends TypeMapFull {
     }
     @Override
     public boolean equals(Object obj) {
-        if (this == obj || obj != null && obj instanceof TypeMapHybrid) {
-            TypeMapHybrid tm = (TypeMapHybrid)obj;
+        if (this == obj || obj != null && obj instanceof TypeMapHalf) {
+            TypeMapHalf tm = (TypeMapHalf)obj;
             Set<Map<String, AstType>> tmDictSet = tm.getDictSet();
             return (dictSet != null && tmDictSet !=null && dictSet.equals(tmDictSet)) &&
                 (exprTypeMap != null && tm.exprTypeMap != null && exprTypeMap.equals(tm.exprTypeMap));
