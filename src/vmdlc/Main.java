@@ -67,10 +67,10 @@ public class Main {
             System.out.println("   -g file   Nez grammar file (default: ejsdl.nez in jar file)");
             System.out.println("   -no-match-opt  disable optimisation for match statement");
             System.out.println("   -r n      set random seed of dispatch processor");
-            System.out.println("   -TX       switch TypeMap class");
-            System.out.println("               -T1: TypeMapLub");
-            System.out.println("               -T2: TypeMapHybrid");
-            System.out.println("               -T3: TypeMapFull");
+            System.out.println("   -TX       type analysis processing");
+            System.out.println("               -T1: use Lub");
+            System.out.println("               -T2: partly detail");
+            System.out.println("               -T3: perfectly detail");
             System.exit(1);
         }
     }
