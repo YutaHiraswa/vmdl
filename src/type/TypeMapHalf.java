@@ -8,6 +8,7 @@ import java.util.Set;
 
 import type.AstType.AstBaseType;
 import type.AstType.JSValueType;
+import type.AstType.JSValueVMType;
 
 public class TypeMapHalf extends TypeMapFull {
     Set<String> dispatchSet;
@@ -28,7 +29,51 @@ public class TypeMapHalf extends TypeMapFull {
         dictSet = _dictSet;
         dispatchSet = _dispatchSet;
     }
-
+    /*
+    public void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
+        Set<Map<String, AstType>> removeMap = new HashSet<>();
+        Set<Map<String, AstType>> newSet = new HashSet<>();
+        for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
+            for(Map<String,AstType> dictMap : dictSet){
+                if(contains(dictMap, exprMap)){
+                    Map<String,AstType> replacedMap = new HashMap<>();
+                    for(String s : dictMap.keySet()){
+                        replacedMap.put(s, dictMap.get(s));
+                    }
+                    AstType replacedType = exprTypeMap.get(exprMap);
+                    if(!(dispatchSet.contains(name))&&(replacedType instanceof JSValueType) && !(replacedType instanceof JSValueVMType)){
+                        for(JSValueVMType t : JSValueType.getChildren((JSValueType)replacedType)){
+                            Map<String,AstType> replacedPartMap = new HashMap<>(replacedMap);
+                            replacedPartMap.replace(name, t);
+                            newSet.add(replacedPartMap);
+                        }
+                    }else{
+                        replacedMap.replace(name, replacedType);
+                        newSet.add(replacedMap);
+                    }
+                    removeMap.add(dictMap);
+                }
+            }
+        }
+        for(Map<String, AstType> map : dictSet){
+            if(!removeMap.contains(map)){
+                newSet.add(map);
+            }
+        }
+        dictSet = newSet;
+    }
+    */
+    @Override
+    protected boolean detailAssign(String name, AstType type){
+        return ((dispatchSet.contains(name)) && (type instanceof JSValueType) && !(type instanceof JSValueVMType));
+    }
+    private Set<String> cloneDispatchSet(){
+        Set<String> newSet = new HashSet<>();
+        for(String s : dispatchSet){
+            newSet.add(s);
+        }
+        return newSet;
+    }
     public void addDispatch(String name){
         dispatchSet.add(name);
     }
@@ -40,7 +85,6 @@ public class TypeMapHalf extends TypeMapFull {
     }
     public TypeMapBase select(Collection<String> domain){
         Set<Map<String, AstType>> selectedSet = new HashSet<>();
-        Set<String> newDispatchSet = new HashSet<>();
         for(Map<String, AstType> m : dictSet){
             Map<String, AstType> selectedMap = new HashMap<>();
             for(String s : domain){
@@ -55,15 +99,11 @@ public class TypeMapHalf extends TypeMapFull {
             }
             selectedSet.add(selectedMap);
         }
-        for(String s : dispatchSet){
-            newDispatchSet.add(s);
-        }
-        return new TypeMapHalf(selectedSet, newDispatchSet);
+        return new TypeMapHalf(selectedSet, cloneDispatchSet());
     }
     @Override
     public TypeMapBase clone(){
         Set<Map<String, AstType>> newSet = new HashSet<>();
-        Set<String> newDispatchSet = new HashSet<>();
         for(Map<String, AstType> m : dictSet){
             Map<String, AstType> newGamma = new HashMap<>();
             for(String s : m.keySet()){
@@ -71,10 +111,7 @@ public class TypeMapHalf extends TypeMapFull {
             }
             newSet.add(newGamma);
         }
-        for(String s : dispatchSet){
-            newDispatchSet.add(s);
-        }
-        return new TypeMapHalf(newSet, newDispatchSet);
+        return new TypeMapHalf(newSet, cloneDispatchSet());
     }
     private AstType getLubType(Set<AstType> set){
         AstType result = AstType.BOT;
@@ -93,7 +130,6 @@ public class TypeMapHalf extends TypeMapFull {
     }
     public TypeMapBase combine(TypeMapBase that){
         Set<Map<String, AstType>> newSet = new HashSet<>();
-        Set<String> newDispatchSet = new HashSet<>();
         Map<String, AstType> lubTypeMap = new HashMap<>();
         Set<String> thatDispatchSet = that.getDispatchSet();
         for(Map<String, AstType> m : dictSet){
@@ -128,10 +164,7 @@ public class TypeMapHalf extends TypeMapFull {
             }
             newSet.add(newGamma);
         }
-        for(String s : dispatchSet){
-            newDispatchSet.add(s);
-        }
-        return new TypeMapHalf(newSet, newDispatchSet);
+        return new TypeMapHalf(newSet, cloneDispatchSet());
     }
     private int indexOf(String[] varNames, String v) {
         for (int i = 0; i < varNames.length; i++) {
@@ -144,7 +177,6 @@ public class TypeMapHalf extends TypeMapFull {
     public TypeMapBase enterCase(String[] varNames, VMDataTypeVecSet caseCondition){
         Set<VMDataType[]> conditionSet = caseCondition.getTuples();
         Set<Map<String, AstType>> newSet = new HashSet<>();
-        Set<String> newDispatchSet = new HashSet<>();
         if(conditionSet.isEmpty()){
             Map<String, AstType> newGamma = new HashMap<>();
             Set<String> keys = getKeys();
@@ -157,6 +189,7 @@ public class TypeMapHalf extends TypeMapFull {
                 int length = varNames.length;
                 NEXT_MAP: for(Map<String, AstType> m : dictSet){
                     for(int i=0; i<length; i++){
+                        if(!(m.get(varNames[i]) instanceof JSValueType)) continue NEXT_MAP;
                         if(!((JSValueType)AstType.get(v[i])).isSuperOrEqual((JSValueType)m.get(varNames[i]))){
                             continue NEXT_MAP;
                         }
@@ -175,14 +208,10 @@ public class TypeMapHalf extends TypeMapFull {
                 newSet.add(newGamma);
             }
         }
-        for(String s : dispatchSet){
-            newDispatchSet.add(s);
-        }
-        return new TypeMapHalf(newSet, newDispatchSet);
+        return new TypeMapHalf(newSet, cloneDispatchSet());
     }
     public TypeMapBase rematch(String[] params, String[] args, Set<String> domain){
         Set<Map<String, AstType>> newSet = new HashSet<>();
-        Set<String> newDispatchSet = new HashSet<>();
         for(Map<String, AstType> m : dictSet){
             Map<String, AstType> newGamma = new HashMap<>();
             for (String v : domain) {
@@ -195,10 +224,7 @@ public class TypeMapHalf extends TypeMapFull {
             }
             newSet.add(newGamma);
         }
-        for(String s : dispatchSet){
-            newDispatchSet.add(s);
-        }
-        return new TypeMapHalf(newSet, newDispatchSet);
+        return new TypeMapHalf(newSet, cloneDispatchSet());
     }
     public TypeMapBase getBottomDict(){
         Set<String> domain = getKeys();
@@ -223,6 +249,16 @@ public class TypeMapHalf extends TypeMapFull {
                 (exprTypeMap != null && tm.exprTypeMap != null && exprTypeMap.equals(tm.exprTypeMap));
         } else {
             return false;
+        }
+    }
+
+    public void putExprTypeElement(Map<String, AstType> key, AstType type) {
+        if((type instanceof JSValueType) && !(type instanceof JSValueVMType)){
+            for(JSValueVMType t : AstType.getChildren((JSValueType)type)){
+                exprTypeMap.put(key, t);
+            }
+        }else{
+            exprTypeMap.put(key, type);
         }
     }
 }

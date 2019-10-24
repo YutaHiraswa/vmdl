@@ -89,7 +89,18 @@ public abstract class VMDataTypeVecSet {
 
         @Override
         public Set<VMDataType[]> getTuples() {
-            throw new Error("to be implemented");
+            int length = types.length;
+            VMDataType[] vec = new VMDataType[length];
+            for(int i=0; i<length; i++){
+                if(types[i] instanceof JSValueVMType){
+                    vec[i] = ((JSValueVMType)types[i]).getVMDataType();
+                }else{
+                    throw new Error("ByCommonTypes has not JSValueVMType element");
+                }
+            }
+            HashSet<VMDataType[]> set = new HashSet<>();
+            set.add(vec);
+            return set;
         }
     }
 

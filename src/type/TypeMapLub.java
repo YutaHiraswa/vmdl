@@ -54,6 +54,63 @@ public class TypeMapLub extends TypeMapBase {
             add(m);
         }
     }
+    public void add(String name, Map<Map<String, AstType>, AstType> map) {
+        AstType type = AstType.BOT;
+        for(Map<String,AstType> exprMap : map.keySet()){
+            if(contains(dict, exprMap)){
+                type = type.lub(map.get(exprMap));
+            }
+        }
+        dict.put(name, type);
+    }
+    public void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
+        Set<Map<String, AstType>> removeMap = new HashSet<>();
+        Set<Map<String, AstType>> newSet = new HashSet<>();
+        for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
+            if(contains(dict, exprMap)){
+                Map<String,AstType> replacedDict = new HashMap<>();
+                for(String s : dict.keySet()){
+                    replacedDict.put(s, dict.get(s));
+                }
+                replacedDict.replace(name, exprTypeMap.get(exprMap));
+                removeMap.add(dict);
+                newSet.add(replacedDict);
+            }
+        }
+        for(Map<String, AstType> map : dictSet){
+            if(!removeMap.contains(map)){
+                newSet.add(map);
+            }
+        }
+        Map<String, AstType> newGamma = new HashMap<>();
+        for(String s : dict.keySet()){
+            newGamma.put(s, AstType.BOT);
+        }
+        for(Map<String, AstType> map : newSet){
+            for(String s : map.keySet()){
+                AstType t1 = newGamma.get(s);
+                AstType t2 = map.get(s);
+                if (t2 == null) {
+                    throw new Error("inconsistent type environment: s = "+s);
+                } else {
+                    if (t1 == t2) {
+                        newGamma.put(s, t1);
+                    } else if (t1 == AstType.BOT) {
+                        newGamma.put(s, t2);
+                    } else if (t2 == AstType.BOT) {
+                        newGamma.put(s, t1);
+                    } else if (!(t1 instanceof JSValueType && t2 instanceof JSValueType))
+                        throw new Error("type error");
+                    else {
+                        JSValueType jsvt1 = (JSValueType) t1;
+                        JSValueType jsvt2 = (JSValueType) t2;
+                        newGamma.put(s, jsvt1.lub(jsvt2));
+                    }
+                }
+            }
+        }
+        dict = newGamma;
+    }
     public boolean containsKey(String key) {
         return dict.containsKey(key);
     }
@@ -189,8 +246,10 @@ public class TypeMapLub extends TypeMapBase {
                     JSValueType t = (JSValueType) xt;
                     if (!t.isSuperOrEqual(dt))
                         continue NEXT_DTS;
+                } else if (xt == AstType.BOT){
+                    continue NEXT_DTS;
                 } else
-                    throw new Error("internal error");
+                    throw new Error("internal error: "+formalParams[i]+"="+xt.toString());
             }
             filtered.add(dts);
         }
@@ -220,66 +279,6 @@ public class TypeMapLub extends TypeMapBase {
             return false;
         }
     }
-
-    public void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
-        Set<Map<String, AstType>> removeMap = new HashSet<>();
-        Set<Map<String, AstType>> newSet = new HashSet<>();
-        for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
-            if(contains(dict, exprMap)){
-                Map<String,AstType> replacedDict = new HashMap<>();
-                for(String s : dict.keySet()){
-                    replacedDict.put(s, dict.get(s));
-                }
-                replacedDict.replace(name, exprTypeMap.get(exprMap));
-                removeMap.add(dict);
-                newSet.add(replacedDict);
-            }
-        }
-        for(Map<String, AstType> map : dictSet){
-            if(!removeMap.contains(map)){
-                newSet.add(map);
-            }
-        }
-        Map<String, AstType> newGamma = new HashMap<>();
-        for(String s : dict.keySet()){
-            newGamma.put(s, AstType.BOT);
-        }
-        for(Map<String, AstType> map : newSet){
-            for(String s : map.keySet()){
-                AstType t1 = newGamma.get(s);
-                AstType t2 = map.get(s);
-                if (t2 == null) {
-                    throw new Error("inconsistent type environment: s = "+s);
-                } else {
-                    if (t1 == t2) {
-                        newGamma.put(s, t1);
-                    } else if (t1 == AstType.BOT) {
-                        newGamma.put(s, t2);
-                    } else if (t2 == AstType.BOT) {
-                        newGamma.put(s, t1);
-                    } else if (!(t1 instanceof JSValueType && t2 instanceof JSValueType))
-                        throw new Error("type error");
-                    else {
-                        JSValueType jsvt1 = (JSValueType) t1;
-                        JSValueType jsvt2 = (JSValueType) t2;
-                        newGamma.put(s, jsvt1.lub(jsvt2));
-                    }
-                }
-            }
-        }
-        dict = newGamma;
-    }
-
-    public void add(String name, Map<Map<String, AstType>, AstType> map) {
-        AstType type = AstType.BOT;
-        for(Map<String,AstType> exprMap : map.keySet()){
-            if(contains(dict, exprMap)){
-                type = type.lub(map.get(exprMap));
-            }
-        }
-        dict.put(name, type);
-    }
-
     public Map<Map<String, AstType>, AstType> combineExprTypeMap(Map<Map<String, AstType>, AstType> exprTypeMap1, Map<Map<String, AstType>, AstType> exprTypeMap2) {
         Map<Map<String, AstType>, AstType> newExprTypeMap = new HashMap<>();
         for(Map<String,AstType> map : exprTypeMap1.keySet()){

@@ -190,7 +190,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                             newDict.add(paramName, paramType);
                     }
                 }
-
                 /* add JSValue parameters (apply operand spec) */
                 if (nJsvTypes > 0) {
                     String[] jsvParamNamesPacked = new String[nJsvTypes];
@@ -200,17 +199,30 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     String[] variableStrings = vtvs.getVarNames();
                     int length = variableStrings.length;
                     Set<Map<String, AstType>> newDictSet = new HashSet<>();
-                    for(VMDataType[] vec : tupleSet){
+                    
+                    if(tupleSet.isEmpty()){
                         Map<String, AstType> tempMap = new HashMap<>();
                         for(int i=0; i<length; i++){
-                            tempMap.put(variableStrings[i], AstType.get(vec[i]));
+                            tempMap.put(variableStrings[i], AstType.BOT);
                         }
                         newDictSet.add(tempMap);
+                    }else{
+                        for(VMDataType[] vec : tupleSet){
+                            Map<String, AstType> tempMap = new HashMap<>();
+                            for(int i=0; i<length; i++){
+                                tempMap.put(variableStrings[i], AstType.get(vec[i]));
+                            }
+                            newDictSet.add(tempMap);
+                        }
                     }
                     newDict.add(newDictSet);
                 }
             }
-
+            /* add diaptched variables information */
+            Set<String> rematchVarSet = node.getRematchVarSet();
+            for(String s : rematchVarSet){
+                newDict.addDispatch(s);
+            }
             SyntaxTree body = (SyntaxTree)definition.get(Symbol.unique("body"));
             dict = visit((SyntaxTree)body, newDict);
 
@@ -263,15 +275,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             TypeMapBase entryDict;
             TypeMapBase newEntryDict = dict;
-            for(String s : mp.getFormalParams()){
-                outDict.addDispatch(s);
-                newEntryDict.addDispatch(s);
-            }
-            Set<String> rematchVarSet = node.getRematchVarSet();
-            for(String s : rematchVarSet){
-                outDict.addDispatch(s);
-                newEntryDict.addDispatch(s);
-            }
             /*
             List<String> formalParams = new ArrayList<String>();
             for (String p: mp.getFormalParams())
@@ -810,7 +813,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             
             TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.setExprTypeMap(TypeMapBase.getSimpleExprTypeMap(rangeType));
+			tempMap.setExprTypeMap(tempMap.getSimpleExprTypeMap(rangeType));
 			return tempMap;
         }
     }

@@ -8,6 +8,7 @@ import java.util.Set;
 
 import type.AstType.AstBaseType;
 import type.AstType.JSValueType;
+import type.AstType.JSValueVMType;
 
 public class TypeMapFull extends TypeMapBase {
     Set<Map<String, AstType>> dictSet;
@@ -67,6 +68,59 @@ public class TypeMapFull extends TypeMapBase {
             }
         }
         dictSet = newSet;
+    }
+    public void add(String name, Map<Map<String, AstType>, AstType> map) {
+        Set<Map<String,AstType>> newDictSet = new HashSet<>();
+        for(Map<String,AstType> exprMap : map.keySet()){
+            for(Map<String,AstType> dictMap : dictSet){
+                if(contains(dictMap, exprMap)){
+                    Map<String,AstType> newMap = new HashMap<>();
+                    for(String s : dictMap.keySet()){
+                        newMap.put(s, dictMap.get(s));
+                    }
+                    newMap.put(name, map.get(exprMap));
+                    newDictSet.add(newMap);
+                }else{
+                    newDictSet.add(dictMap);
+                }
+            }
+        }
+        dictSet = newDictSet;
+    }
+    public void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
+        Set<Map<String, AstType>> removeMap = new HashSet<>();
+        Set<Map<String, AstType>> newSet = new HashSet<>();
+        for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
+            for(Map<String,AstType> dictMap : dictSet){
+                if(contains(dictMap, exprMap)){
+                    Map<String,AstType> replacedMap = new HashMap<>();
+                    for(String s : dictMap.keySet()){
+                        replacedMap.put(s, dictMap.get(s));
+                    }
+                    AstType replacedType = exprTypeMap.get(exprMap);
+                    if(detailAssign(name, replacedType)){
+                        for(JSValueVMType t : JSValueType.getChildren((JSValueType)replacedType)){
+                            Map<String,AstType> replacedPartMap = new HashMap<>(replacedMap);
+                            replacedPartMap.replace(name, t);
+                            newSet.add(replacedPartMap);
+                        }
+                    }else{
+                        replacedMap.replace(name, replacedType);
+                        newSet.add(replacedMap);
+                    }
+                    removeMap.add(dictMap);
+                }
+            }
+        }
+        for(Map<String, AstType> map : dictSet){
+            if(!removeMap.contains(map)){
+                newSet.add(map);
+            }
+        }
+        dictSet = newSet;
+    }
+    protected boolean detailAssign(String name, AstType type){
+        return ((type instanceof JSValueType) && !(type instanceof JSValueVMType));
     }
     public boolean containsKey(String key){
         for(Map<String, AstType> m : dictSet){
@@ -149,6 +203,7 @@ public class TypeMapFull extends TypeMapBase {
                 int length = varNames.length;
                 NEXT_MAP: for(Map<String, AstType> m : dictSet){
                     for(int i=0; i<length; i++){
+                        if(!(m.get(varNames[i]) instanceof JSValueType)) continue NEXT_MAP;
                         if(!((JSValueType)AstType.get(v[i])).isSuperOrEqual((JSValueType)m.get(varNames[i]))){
                             continue NEXT_MAP;
                         }
@@ -207,9 +262,11 @@ public class TypeMapFull extends TypeMapBase {
                     if(xt instanceof JSValueType){
                         JSValueType t = (JSValueType)xt;
                         if(!t.isSuperOrEqual(JSValueType.get(dt))) continue NEXT_MAP;
-                    }else
-                        throw new Error("internal error :"+xt.toString());
-                }
+                    } else if (xt == AstType.BOT){
+                        continue NEXT_MAP;
+                    } else
+                        throw new Error("internal error: "+formalParams[i]+"="+xt.toString());
+                    }
                 filtered.add(dts);
                 break;
             }
@@ -239,49 +296,6 @@ public class TypeMapFull extends TypeMapBase {
             return false;
         }
     }
-    public void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
-        Set<Map<String, AstType>> removeMap = new HashSet<>();
-        Set<Map<String, AstType>> newSet = new HashSet<>();
-        for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
-            for(Map<String,AstType> dictMap : dictSet){
-                if(contains(dictMap, exprMap)){
-                    Map<String,AstType> replacedMap = new HashMap<>();
-                    for(String s : dictMap.keySet()){
-                        replacedMap.put(s, dictMap.get(s));
-                    }
-                    replacedMap.replace(name, exprTypeMap.get(exprMap));
-                    removeMap.add(dictMap);
-                    newSet.add(replacedMap);
-                }
-            }
-        }
-        for(Map<String, AstType> map : dictSet){
-            if(!removeMap.contains(map)){
-                newSet.add(map);
-            }
-        }
-        dictSet = newSet;
-    }
-
-    public void add(String name, Map<Map<String, AstType>, AstType> map) {
-        Set<Map<String,AstType>> newDictSet = new HashSet<>();
-        for(Map<String,AstType> exprMap : map.keySet()){
-            for(Map<String,AstType> dictMap : dictSet){
-                if(contains(dictMap, exprMap)){
-                    Map<String,AstType> newMap = new HashMap<>();
-                    for(String s : dictMap.keySet()){
-                        newMap.put(s, dictMap.get(s));
-                    }
-                    newMap.put(name, map.get(exprMap));
-                    newDictSet.add(newMap);
-                }else{
-                    newDictSet.add(dictMap);
-                }
-            }
-        }
-        dictSet = newDictSet;
-    }
-
     public Map<Map<String, AstType>, AstType> combineExprTypeMap(Map<Map<String, AstType>, AstType> exprTypeMap1, Map<Map<String, AstType>, AstType> exprTypeMap2) {
         Map<Map<String, AstType>, AstType> newExprTypeMap = new HashMap<>();
         for(Map<String,AstType> map : exprTypeMap1.keySet()){
