@@ -632,27 +632,23 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     AstType tCdouble = AstType.get("cdouble");
     AstType tCstring = AstType.get("cstring");
     AstType tSubscript = AstType.get("Subscript");
-
-    private Set<Map<String,AstType>> getKeySet(int[][] combiIndex, List<Set<Map<String,AstType>>> lKeySetSetList, List<Set<Map<String,AstType>>> rKeySetSetList){
-        int combiIndexSize = combiIndex.length;
+    private Set<Map<String,AstType>> getKeySet(Set<Map<String,AstType>> lKeySet, Set<Map<String,AstType>> rKeySet){
         Set<Map<String,AstType>> newKeySet = new HashSet<>();
-        for(int i=0; i< combiIndexSize; i++){
-            for(Map<String,AstType> m1 : lKeySetSetList.get(combiIndex[i][0])){
-                for(Map<String,AstType> m2 : rKeySetSetList.get(combiIndex[i][1])){
-                    Map<String,AstType> tempMap = new HashMap<>(m1);
-                    for(String name : m2.keySet()){
-                        if(!m1.containsKey(name)){
-                            tempMap.put(name, m2.get(name));
-                            continue;
-                        }
-                        if(m1.get(name)!=m2.get(name)){
-                            tempMap = null;
-                            break;
-                        }
+        for(Map<String,AstType> m1 : lKeySet){
+            for(Map<String,AstType> m2 : rKeySet){
+                Map<String,AstType> tempMap = new HashMap<>(m1);
+                for(String name : m2.keySet()){
+                    if(!m1.containsKey(name)){
+                        tempMap.put(name, m2.get(name));
+                        continue;
                     }
-                    if(tempMap!=null){
-                        newKeySet.add(tempMap);
+                    if(m1.get(name)!=m2.get(name)){
+                        tempMap = null;
+                        break;
                     }
+                }
+                if(tempMap!=null){
+                    newKeySet.add(tempMap);
                 }
             }
         }
@@ -663,34 +659,37 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         final int CINT      = 0;
         final int CDOUBLE   = 1;
         final int SUBSCRIPT = 2;
-        AstType typeArray[] = {tCint, tCdouble, tSubscript};
-        int typeArrayLength = typeArray.length;
-        int cintCombiIndex[][]    = {{CINT, CINT}, {CINT, SUBSCRIPT}, {SUBSCRIPT, CINT}, {SUBSCRIPT, SUBSCRIPT}};
-        int cdoubleCombiIndex[][] = {{CINT, CDOUBLE}, {CDOUBLE, CINT}, {SUBSCRIPT, CDOUBLE}, {SUBSCRIPT, CDOUBLE}, {CDOUBLE, CDOUBLE}};
+        final AstType typeArray[] = {tCint, tCdouble, tSubscript};
+        /*  typeRule       -> {{<OperandType1>, <OperandType2>, <ResultType>}, ...} */
+        int typeRule[][]    = {{CINT, CINT, CINT}, {CINT, SUBSCRIPT, SUBSCRIPT}, {SUBSCRIPT, CINT, SUBSCRIPT},
+                               {SUBSCRIPT, SUBSCRIPT, SUBSCRIPT}, {CINT, CDOUBLE, CDOUBLE}, {CDOUBLE, CINT, CDOUBLE}, 
+                               {CDOUBLE, CDOUBLE, CDOUBLE}};
         SyntaxTree leftNode = node.get(Symbol.unique("left"));
         SyntaxTree rightNode = node.get(Symbol.unique("right"));
         TypeMapBase lTypeMap = visit(leftNode, dict);
         TypeMapBase rTypeMap = visit(rightNode, dict);
         List<Set<Map<String,AstType>>> lKeySetSetList = new ArrayList<>();
         List<Set<Map<String,AstType>>> rKeySetSetList = new ArrayList<>();
-        for(int i=0; i<typeArrayLength; i++){
+        for(int i=0; i<typeArray.length; i++){
             lKeySetSetList.add(lTypeMap.getKeySetValueOf(typeArray[i]));
             rKeySetSetList.add(rTypeMap.getKeySetValueOf(typeArray[i]));
         }
-        Set<Map<String,AstType>> newCintKeySet = getKeySet(cintCombiIndex, lKeySetSetList, rKeySetSetList);
-        Set<Map<String,AstType>> newCdoubleKeySet = getKeySet(cdoubleCombiIndex, lKeySetSetList, rKeySetSetList);
         Map<Map<String,AstType>,AstType> newExprTypeMap = new HashMap<>();
-        for(Map<String,AstType> m : newCintKeySet){
-            newExprTypeMap.put(m, tCint);
-        }
-        for(Map<String,AstType> m : newCdoubleKeySet){
-            newExprTypeMap.put(m, tCdouble);
+        for(int[] rule : typeRule){
+            Set<Map<String,AstType>> lOperandExprTypeMapSet = lKeySetSetList.get(rule[0]);
+            Set<Map<String,AstType>> rOperandExprTypeMapSet = rKeySetSetList.get(rule[1]);
+            AstType resultType   = typeArray[rule[2]];
+            Set<Map<String,AstType>> keySet = getKeySet(lOperandExprTypeMapSet, rOperandExprTypeMapSet);
+            for(Map<String, AstType> key : keySet){
+                newExprTypeMap.put(key, resultType);
+            }
         }
         if(newExprTypeMap.isEmpty()){
             throw new Error("type error: number Operate has no result type");
         }
         return newExprTypeMap;
     }
+
     private Map<Map<String,AstType>,AstType> bitwiseOperator(SyntaxTree node, TypeMapBase dict) throws Exception {
         SyntaxTree leftNode = node.get(Symbol.unique("left"));
         Map<Map<String,AstType>,AstType> lExprTypeMap = visit(leftNode, dict).getExprTypeMap();
@@ -808,12 +807,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             AstBaseType rangeType = (AstBaseType)funType.getRange();
            
             // TODO: type check
+            /*
             for (SyntaxTree arg : node.get(1)) {
                 Map<Map<String,AstType>,AstType> exprTypeMap = visit(arg, dict).getExprTypeMap();
             }
-            
+            */
             TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.setExprTypeMap(tempMap.getSimpleExprTypeMap(rangeType));
+			tempMap.setExprTypeMap(TypeMapBase.getSimpleExprTypeMap(rangeType));
 			return tempMap;
         }
     }
