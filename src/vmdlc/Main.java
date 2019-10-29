@@ -61,6 +61,9 @@ public class Main {
                 option.mDisableMatchOptimisation = true;
             } else if(opt.matches("-T.")){
                 Integer num = Integer.parseInt(opt.substring(2));
+                if((num <= 0) || (num > TYPE_MAPS.length)){
+                    throw new Error("Illigal option");
+                }
                 typeMapIndex = num;
             } else if (opt.equals("-i")) {
                 insnDefFile = args[i++];

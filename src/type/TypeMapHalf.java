@@ -35,17 +35,20 @@ public class TypeMapHalf extends TypeMapFull {
     }
     private Set<String> cloneDispatchSet(){
         return new HashSet<>(dispatchSet);
-        }
+    }
     @Override
     public void addDispatch(String name){
         dispatchSet.add(name);
     }
+    @Override
     public void clearDispatch(){
         dispatchSet = new HashSet<>();
     }
+    @Override
     public Set<String> getDispatchSet(){
         return dispatchSet;
     }
+    @Override
     public TypeMapBase select(Collection<String> domain){
         Set<Map<String, AstType>> selectedSet = new HashSet<>();
         for(Map<String, AstType> m : dictSet){
@@ -68,7 +71,7 @@ public class TypeMapHalf extends TypeMapFull {
     @Override
     public TypeMapBase clone(){
         return new TypeMapHalf(cloneDictSet(dictSet), cloneDispatchSet());
-        }
+    }
     private AstType getLubType(Set<AstType> set){
         AstType result = AstType.BOT;
         for(AstType t : set){
@@ -84,6 +87,7 @@ public class TypeMapHalf extends TypeMapFull {
         }
         return result;
     }
+    @Override
     public TypeMapBase combine(TypeMapBase that){
         Set<Map<String, AstType>> newSet = new HashSet<>();
         Set<String> thatDispatchSet = that.getDispatchSet();
@@ -130,6 +134,7 @@ public class TypeMapHalf extends TypeMapFull {
         }
         return -1;
     }
+    @Override
     public TypeMapBase enterCase(String[] varNames, VMDataTypeVecSet caseCondition){
         Set<VMDataType[]> conditionSet = caseCondition.getTuples();
         Set<Map<String, AstType>> newSet = new HashSet<>();
@@ -166,6 +171,7 @@ public class TypeMapHalf extends TypeMapFull {
         }
         return new TypeMapHalf(newSet, cloneDispatchSet());
     }
+    @Override
     public TypeMapBase rematch(String[] params, String[] args, Set<String> domain){
         Set<Map<String, AstType>> newSet = new HashSet<>();
         for(Map<String, AstType> m : dictSet){
@@ -182,6 +188,7 @@ public class TypeMapHalf extends TypeMapFull {
         }
         return new TypeMapHalf(newSet, cloneDispatchSet());
     }
+    @Override
     public TypeMapBase getBottomDict(){
         Set<String> domain = getKeys();
         Map<String, AstType> newGamma = new HashMap<>();
