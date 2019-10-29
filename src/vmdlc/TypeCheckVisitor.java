@@ -125,9 +125,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         System.err.println(node.getTag().toString());
         System.err.println(node.toString());
         System.err.println("----");
-        System.err.println(dict.toString());
+        System.err.println("dict:"+dict.toString());
         System.err.println("----");
-        System.err.println(dict.getExprTypeMap().toString());
+        System.err.println("exprMap:"+dict.getExprTypeMap().toString());
         */
         return find(node.getTag().toString()).accept(node, dict);
     }
@@ -158,7 +158,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree nodeName = node.get(Symbol.unique("name"));
             SyntaxTree nameNode = definition.get(Symbol.unique("name"));
             String name = nameNode.toText();
-            dict.add(name, funtype);
+            dict.addGlobal(name, funtype);
 
             Set<String> domain = new HashSet<String>(dict.getKeys());
 
@@ -200,7 +200,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     String[] variableStrings = vtvs.getVarNames();
                     int length = variableStrings.length;
                     Set<Map<String, AstType>> newDictSet = new HashSet<>();
-                    
                     if(tupleSet.isEmpty()){
                         Map<String, AstType> tempMap = new HashMap<>();
                         for(int i=0; i<length; i++){
@@ -230,7 +229,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             save(nameNode, dict);
             save(nodeName, dict);
             save(paramsNode, dict);
-            return dict.select((Set<String>)domain);
+            return dict.select(domain);
         }
         public void saveType(SyntaxTree node, TypeMapBase dict) throws Exception {
         }
@@ -258,7 +257,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 dict = visit(seq, dict);
                 save(seq, dict);
             }
-            TypeMapBase result = dict.select((Set<String>)domain);
+            TypeMapBase result = dict.select(domain);
             return result;
         }
         public void saveType(SyntaxTree node, TypeMapBase dict) throws Exception {
@@ -469,7 +468,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree varNode = node.get(Symbol.unique("var"));
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
             AstType type = AstType.get(typeNode.toText());
-            dict.add(varNode.toText(), type);
+            dict.addGlobal(varNode.toText(), type);
 
             return dict;
         }
@@ -483,7 +482,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             AstType range = AstType.nodeToType(typeNode.get(1));
             SyntaxTree nameNode = node.get(Symbol.unique("name"));
             AstType type = new AstProductType(domain, range);
-            dict.add(nameNode.toText(), type);
+            dict.addGlobal(nameNode.toText(), type);
 
             return dict;
         }
@@ -495,7 +494,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
             SyntaxTree varNode = node.get(Symbol.unique("var"));
             AstType type = AstType.get(typeNode.toText());
-            dict.add(varNode.toText(), type);
+            dict.addGlobal(varNode.toText(), type);
 
             return dict;
         }

@@ -27,7 +27,14 @@ public class TypeMapLub extends TypeMapBase {
     }
     public Set<AstType> get(String name){
         Set<AstType> set = new HashSet<>();
-        set.add(dict.get(name));
+        AstType type = dict.get(name);
+        if(type == null){
+            type = globalDict.get(name);
+        }
+        if(type==null){
+            throw new Error("The variable not found : "+name);
+        }
+        set.add(type);
         return set;
     }
     public void addDispatch(String name){}
@@ -39,21 +46,33 @@ public class TypeMapLub extends TypeMapBase {
         dict.put(name, type);
     }
     public void add(Map<String, AstType> map){
-        for(String k : map.keySet()){
-            AstType t = dict.get(k);
-            if(t==null){
-                dict.put(k, map.get(k));
-            }else{
-                dict.replace(k, t.lub(map.get(k)));
+        for(String name : map.keySet()){
+            AstType type = dict.get(name);
+            if(name != null){
+                System.err.println("Warning : The variable is already declared : "+name); 
             }
+            dict.put(name, type);
         }
-        
     }
     public void add(Set<Map<String, AstType>> set){
+        Map<String, AstType> lubMap = new HashMap<>();
         for(Map<String, AstType> m : set){
-            add(m);
+            for(String name : m.keySet()){
+                AstType type = m.get(name);
+                AstType lubType = lubMap.get(name);
+                if(lubType == null){
+                    lubMap.put(name, type);
+                }else{
+                    lubMap.put(name, lubType.lub(type));
         }
     }
+        }
+        for(String name : lubMap.keySet()){
+            AstType lubType = lubMap.get(name);
+            dict.put(name, lubType);
+        }
+    }
+    @Override
     public void add(String name, Map<Map<String, AstType>, AstType> map) {
         AstType type = AstType.BOT;
         for(Map<String,AstType> exprMap : map.keySet()){
@@ -112,16 +131,24 @@ public class TypeMapLub extends TypeMapBase {
         dict = newGamma;
     }
     public boolean containsKey(String key) {
-        return dict.containsKey(key);
+        return (dict.containsKey(key) || globalDict.containsKey(key));
     }
-    public Set<String> getKeys() {
-        return dict.keySet();
+    public Set<String> getKeys(){
+        Set<String> keySet = new HashSet<>();
+        for(Map<String, AstType> m : dictSet){
+            keySet.addAll(m.keySet());
+    }
+        return keySet;
     }
     public TypeMapBase select(Collection<String> domain) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
-        
         for (String v : domain) {
-            newGamma.put(v, dict.get(v));
+            AstType type = dict.get(v);
+            if(type == null){
+                throw new Error("No such element \""+v+"\"");
+            }else{
+                newGamma.put(v, type);
+            }
         }
         return new TypeMapLub(newGamma);
     }
@@ -133,9 +160,6 @@ public class TypeMapLub extends TypeMapBase {
             newGamma.put(s, dict.get(s));
         }
         return new TypeMapLub(newGamma);
-    }
-    public void update(String key, AstType value) {
-        dict.replace(key, value);
     }
     private Map<String, AstType> getLubDict(Set<Map<String, AstType>> _dictSet){
         HashMap<String, AstType> lubDict = new HashMap<>();
@@ -226,14 +250,7 @@ public class TypeMapLub extends TypeMapBase {
     }
 
     public TypeMapBase getBottomDict() {
-        Set<String> domain = getKeys();
-        Map<String, AstType> mapTemp = new HashMap<>();
-        TypeMapLub result = new TypeMapLub();
-        for (String v : domain) {
-            mapTemp.put(v, AstType.BOT);
-        }
-        result.add(mapTemp);
-        return result;
+        return new TypeMapLub(cloneDict(dict));
     }
 
     public Set<VMDataType[]> filterTypeVecs(String[] formalParams, Set<VMDataType[]> vmtVecs) {
@@ -262,12 +279,10 @@ public class TypeMapLub extends TypeMapBase {
                 return true;
         return false;
     }
-    
     @Override
     public String toString() {
-        return dict.toString();
+        return dict.toString()+", "+globalDict.toString();
     }
-    
     @Override
     public boolean equals(Object obj) {
         if (this == obj ||
