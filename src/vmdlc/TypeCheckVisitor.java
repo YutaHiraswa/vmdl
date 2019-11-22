@@ -23,6 +23,7 @@ import java.util.List;
 import vmdlc.TypeCheckVisitor.DefaultVisitor;
 import type.AstType.*;
 import type.AstType;
+import type.ExprTypeSet;
 import type.TypeMapBase;
 import type.VMDataType;
 import type.VMDataTypeVecSet;
@@ -101,6 +102,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public TypeCheckVisitor() {
         init(TypeCheckVisitor.class, new DefaultVisitor());
         numberOperatorInitialize();
+        unaryOperatorInitialize();
     }
 
     public void start(Tree<?> node, OperandSpecifications opSpec, TypeMapBase typeMap) {
@@ -119,7 +121,22 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    // Visit for statement
     private final TypeMapBase visit(SyntaxTree node, TypeMapBase dict) throws Exception {
+        /*
+        System.err.println("==================");
+        System.err.println(node.getTag().toString());
+        System.err.println(node.toString());
+        System.err.println("----");
+        System.err.println("dict:"+dict.toString());
+        System.err.println("----");
+        System.err.println("exprMap:"+dict.getExprTypeMap().toString());
+        */
+        return find(node.getTag().toString()).accept(node, dict);
+    }
+
+    // Visit for expression
+    private final ExprTypeSet visit(SyntaxTree node, Map<String, AstType> dict) throws Exception {
         /*
         System.err.println("==================");
         System.err.println(node.getTag().toString());
@@ -139,6 +156,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class DefaultVisitor {
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
             return dict;
+        }
+        public ExprTypeSet accept(SyntaxTree node, Map<String, AstType> dict) throws Exception {
+            return null;
         }
         public void saveType(SyntaxTree node, TypeMapBase dict) throws Exception {
             for (SyntaxTree chunk : node) {
@@ -782,41 +802,69 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    final Set<AstType> validPlusOperandTypeSet = new HashSet<>();
+    final Set<AstType> validMinusOperandTypeSet = validPlusOperandTypeSet;
+    final Set<AstType> validComplOperandTypeSet = new HashSet<>();
+    final Set<AstType> validNotOperandTypeSet = validComplOperandTypeSet;
+    private void unaryOperatorInitialize(){
+        validPlusOperandTypeSet.add(AstType.get("cint"));
+        validPlusOperandTypeSet.add(AstType.get("cdouble"));
+        validComplOperandTypeSet.add(AstType.get("cint"));
+    }
+
+    //*********************************
+    // UnaryOperators
+    //*********************************
+
     public class Plus extends DefaultVisitor {
         @Override
-        public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
+        public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
-            TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.setExprTypeMap(TypeMapBase.cloneExprTypeMap(visit(exprNode, dict).getExprTypeMap()));
-			return tempMap;
+            ExprTypeSet exprTypeSet = visit(exprNode, dict);
+            if(!validPlusOperandTypeSet.containsAll(exprTypeSet.getTypeSet())){
+                throw new Error("Illigal type is given for plus operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+            }
+			return exprTypeSet;
         }
     }
     public class Minus extends DefaultVisitor {
         @Override
-        public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
+        public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
-            TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.setExprTypeMap(TypeMapBase.cloneExprTypeMap(visit(exprNode, dict).getExprTypeMap()));
-			return tempMap;
+            ExprTypeSet exprTypeSet = visit(exprNode, dict);
+            if(!validMinusOperandTypeSet.containsAll(exprTypeSet.getTypeSet())){
+                throw new Error("Illigal type is given for minus operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+            }
+			return exprTypeSet;
         }
     }
     public class Compl extends DefaultVisitor {
         @Override
-        public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
+        public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
-            TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.setExprTypeMap(TypeMapBase.cloneExprTypeMap(visit(exprNode, dict).getExprTypeMap()));
-			return tempMap;
+            ExprTypeSet exprTypeSet = visit(exprNode, dict);
+            if(!validComplOperandTypeSet.containsAll(exprTypeSet.getTypeSet())){
+                throw new Error("Illigal type is given for compl operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+            }
+			return exprTypeSet;
         }
     }
     public class Not extends DefaultVisitor {
         @Override
-        public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("Bool"));
-			return tempMap;
+        public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
+            SyntaxTree exprNode = node.get(Symbol.unique("expr"));
+            ExprTypeSet exprTypeSet = visit(exprNode, dict);
+            if(!validNotOperandTypeSet.containsAll(exprTypeSet.getTypeSet())){
+                throw new Error("Illigal type is given for not operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+            }
+			return exprTypeSet;
         }
     }
+
+    //*********************************
+    // FunctionCall
+    //*********************************
+
     public class FunctionCall extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
@@ -859,65 +907,57 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             return dict;
         }
     }
+
+    //*********************************
+    // Constants
+    //*********************************
+
     public class _Integer extends DefaultVisitor {
         @Override
-        public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("cint"));
-			return tempMap;
+        public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
+			return new ExprTypeSet(AstType.get("cint"));
         }
     }
 
     public class _Float extends DefaultVisitor {
         @Override
-        public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("cdouble"));
-			return tempMap;
+        public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
+			return new ExprTypeSet(AstType.get("cdouble"));
         }
     }
 
     public class _String extends DefaultVisitor {
         @Override
-        public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("String"));
-			return tempMap;
+        public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
+			return new ExprTypeSet(AstType.get("cstring"));
         }
     }
 
     public class _True extends DefaultVisitor {
         @Override
-        public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            TypeMapBase tempMap = TYPE_MAP.clone();
-			tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("Bool"));
-			return tempMap;
+        public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
+			return new ExprTypeSet(AstType.get("cint"));
         }
     }
     public class _False extends DefaultVisitor {
         @Override
-        public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
-            TypeMapBase tempMap = TYPE_MAP.clone();
-            tempMap.putExprTypeElement(new HashMap<String, AstType>(), AstType.get("Bool"));
-			return tempMap;
+        public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
+			return new ExprTypeSet(AstType.get("cint"));
         }
     }
 
+    //*********************************
+    // Variables
+    //*********************************
+
     public class Name extends DefaultVisitor {
         @Override
-        public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
+        public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
             String name = node.toText();
             if (!dict.containsKey(name)) {
-                throw new Error("Name: no such name: "+"\""+name+"\""+node.getSource().getResourceName()+": "+node.getLineNum());
+                throw new Error("No such name: "+"\""+name+"\" (at line "+node.getLineNum()+")");
             }
-            Set<AstType> type = dict.get(name);
-            TypeMapBase tempMap = TYPE_MAP.clone();
-            for(AstType t : type){
-                Map<String, AstType> keyMap = new HashMap<>();
-                keyMap.put(name, t);
-                tempMap.putExprTypeElement(keyMap, t);
-            }
-			return tempMap;
+			return new ExprTypeSet(dict.get(name));
         }
         public void saveType(SyntaxTree node, TypeMapBase dict) throws Exception {
             String name = node.toText();
