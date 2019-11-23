@@ -112,7 +112,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     public static TypeMapBase TYPE_MAP;
     public static ExprTypeSet EXPR_TYPE;
-    public static Map<String, AstProductType> functionTable = new HashMap<>();
+    public static Map<String, AstType> globalDict = new HashMap<>();
 
     public TypeCheckVisitor() {
         init(TypeCheckVisitor.class, new DefaultVisitor());
@@ -494,6 +494,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    //**********************************
+    // ExternCs
+    //**********************************
+
     public class CTypeDef extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
@@ -763,7 +767,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
             SyntaxTree recv = node.get(Symbol.unique("recv"));
             String functionName = recv.toText();
-            AstProductType functionType = functionTable.get(functionName);
+            AstType functionType = globalDict.get(functionName);
             if(functionType == null){
                 throw new Error("function is not defined: "+functionName);
             }
