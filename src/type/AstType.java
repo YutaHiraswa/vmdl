@@ -132,6 +132,19 @@ public class AstType {
         throw new Error("Unknown type: "+node.toText());
     }
 
+    public boolean isSuperOrEqual(AstType t) {
+        if(t == AstType.BOT) return false;
+        if(!(t instanceof JSValueType)){
+            return t == this;
+        }
+        JSValueType jsvt = (JSValueType)t;
+        while(jsvt != null){
+            if (jsvt == this) return true;
+            jsvt = jsvt.parent;
+        }
+        return false;
+    }
+
     public static class AstBaseType extends AstType {
         private AstBaseType(String _name) {
             name = _name;
