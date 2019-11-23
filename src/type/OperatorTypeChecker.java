@@ -1,5 +1,6 @@
 package type;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class OperatorTypeChecker{
@@ -41,6 +42,8 @@ public class OperatorTypeChecker{
   public static final OperatorTypeChecker GRATORTHAN_EQUALS = LESSTHAN_EQUALS;
   public static final OperatorTypeChecker LESSTHAN = LESSTHAN_EQUALS;
   public static final OperatorTypeChecker GRATORTHAN = LESSTHAN_EQUALS;
+  public static final OperatorTypeChecker LEFT_SHIFT = new OperatorTypeChecker().binaryOperator();
+  public static final OperatorTypeChecker RIGHT_SHIFT = LEFT_SHIFT;
   private OperatorTypeChecker unaryOperator(){
     unaryOperatorTypeTable = new AstType[typeSize];
     for(int i=0; i<typeSize; i++){
@@ -72,6 +75,7 @@ public class OperatorTypeChecker{
     PLUS.add(CDOUBLE, T_CDOUBLE);
     // COMPL, NOT
     COMPL.add(CINT, T_CINT);
+
     //********************
     // Binary operators
     //********************
@@ -107,6 +111,8 @@ public class OperatorTypeChecker{
     BITWISE_OR.add(CINT, CINT, T_CINT);
     // LESSTHAN_EQUALS, GRATORTHAN_EQUALS, LESSTHAN, GRATORTHAN
     LESSTHAN_EQUALS.add(CINT, CINT, T_CINT);
+    // LEFT_SHIFT, RIGHT_SHIFT
+    LEFT_SHIFT.add(CINT, CINT, T_CINT);
     // NOTE: EQUALS and NOT_EQUALS defined in EqualsOperatorTypeChecker
   }
   public AstType typeOf(AstType type){
