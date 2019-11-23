@@ -101,7 +101,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     public TypeCheckVisitor() {
         init(TypeCheckVisitor.class, new DefaultVisitor());
-        numberOperatorInitialize();
+        binaryOperatorInitialize();
         unaryOperatorInitialize();
     }
 
@@ -533,6 +533,33 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             return resultMap;
         }
     }
+
+    // AstType -> AstType -> AstType
+    final Map<AstType> validAddOperandTypeSet = new HashSet<>();
+    final Set<AstType> validSubOperandTypeSet = new HashSet<>();
+    final Set<AstType> validMulOperandTypeSet = new HashSet<>();
+    final Set<AstType> validDivOperandTypeSet = validMulOperandTypeSet;
+    final Set<AstType> validModOperandTypeSet = new HashSet<>();
+    final Set<AstType> validOrOperandTypeSet = new HashSet<>();
+    final Set<AstType> validAndOperandTypeSet = validOrOperandTypeSet;
+    final Set<AstType> validBitwiseOrOperandTypeSet = new HashSet<>();
+    final Set<AstType> validBitwiseXOrOperandTypeSet = validBitwiseOrOperandTypeSet;
+    final Set<AstType> validBitwiseAndOperandTypeSet = validBitwiseOrOperandTypeSet;
+    final Set<AstType> validEqualsOperandTypeSet = new HashSet<>();
+    final Set<AstType> validNotEqualsOperandTypeSet = validEqualsOperandTypeSet;
+    final Set<AstType> validLessThanEqualsOperandTypeSet = validEqualsOperandTypeSet;
+    final Set<AstType> validGreaterThanEqualsOperandTypeSet = validEqualsOperandTypeSet;
+    final Set<AstType> validLessThanOperandTypeSet = validEqualsOperandTypeSet;
+    final Set<AstType> validGreaterThanOperandTypeSet = validEqualsOperandTypeSet;
+    final Set<AstType> validLeftShiftOperandTypeSet = new HashSet<>();
+    final Set<AstType> validRightShiftOperandTypeSet = validLeftShiftOperandTypeSet;
+    private void binaryOperatorInitialize(){
+
+    }
+    //*********************************
+    // UnaryOperators
+    //*********************************
+
     public class Or extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
@@ -648,6 +675,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    /*
     Map<String, Integer> operatorNameToIndex = new HashMap<>();
     private void numberOperatorInitialize(){
         operatorNameToIndex.put("Add", 0);
@@ -691,7 +719,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         final int DISPLACEMENT = 2;
         final int SUBSCRIPT    = 3;
         final AstType typeArray[] = {tCint, tCdouble, tDisplacement, tSubscript};
-        /*  rule ---> {<LeftOperandType>, <RightOperandType>, <ResultType>}, ... */
+        /*  rule ---> {<LeftOperandType>, <RightOperandType>, <ResultType>}, ... 
         final int typeRule[][][] = {
             //Add rule
             {{CINT, CINT, CINT}, {CINT, CDOUBLE, CDOUBLE}, {CDOUBLE, CINT, CDOUBLE}, {CDOUBLE, CDOUBLE, CDOUBLE},
@@ -755,7 +783,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
         return TypeMapBase.getSimpleExprTypeMap(tCint);
     }
-
+    */
     public class Add extends DefaultVisitor {
         @Override
         public TypeMapBase accept(SyntaxTree node, TypeMapBase dict) throws Exception {
@@ -802,16 +830,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
-    final Set<AstType> validPlusOperandTypeSet = new HashSet<>();
-    final Set<AstType> validMinusOperandTypeSet = validPlusOperandTypeSet;
-    final Set<AstType> validComplOperandTypeSet = new HashSet<>();
-    final Set<AstType> validNotOperandTypeSet = validComplOperandTypeSet;
-    private void unaryOperatorInitialize(){
-        validPlusOperandTypeSet.add(AstType.get("cint"));
-        validPlusOperandTypeSet.add(AstType.get("cdouble"));
-        validComplOperandTypeSet.add(AstType.get("cint"));
-    }
-
     //*********************************
     // UnaryOperators
     //*********************************
@@ -821,10 +839,15 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
             ExprTypeSet exprTypeSet = visit(exprNode, dict);
-            if(!validPlusOperandTypeSet.containsAll(exprTypeSet.getTypeSet())){
-                throw new Error("Illigal type is given for plus operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+            ExprTypeSet resultTypeSet = new ExprTypeSet();
+            for(AstType t : exprTypeSet){
+                AstType result = OperandTypeChecker.PLUS.type(t);
+                if(result == null){
+                    throw new Error("Illigal types given for plus operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+                }
+                resultTypeSet.add(result);
             }
-			return exprTypeSet;
+			return resultTypeSet;
         }
     }
     public class Minus extends DefaultVisitor {
@@ -832,10 +855,15 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
             ExprTypeSet exprTypeSet = visit(exprNode, dict);
-            if(!validMinusOperandTypeSet.containsAll(exprTypeSet.getTypeSet())){
-                throw new Error("Illigal type is given for minus operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+            ExprTypeSet resultTypeSet = new ExprTypeSet();
+            for(AstType t : exprTypeSet){
+                AstType result = OperandTypeChecker.MINUS.type(t);
+                if(result == null){
+                    throw new Error("Illigal types given for minus operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+                }
+                resultTypeSet.add(result);
             }
-			return exprTypeSet;
+			return resultTypeSet;
         }
     }
     public class Compl extends DefaultVisitor {
@@ -843,10 +871,15 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
             ExprTypeSet exprTypeSet = visit(exprNode, dict);
-            if(!validComplOperandTypeSet.containsAll(exprTypeSet.getTypeSet())){
-                throw new Error("Illigal type is given for compl operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+            ExprTypeSet resultTypeSet = new ExprTypeSet();
+            for(AstType t : exprTypeSet){
+                AstType result = OperandTypeChecker.COMPL.type(t);
+                if(result == null){
+                    throw new Error("Illigal types given for compl operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+                }
+                resultTypeSet.add(result);
             }
-			return exprTypeSet;
+			return resultTypeSet;
         }
     }
     public class Not extends DefaultVisitor {
@@ -854,10 +887,15 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public ExprTypeSet accept(SyntaxTree node, Map<String,AstType> dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
             ExprTypeSet exprTypeSet = visit(exprNode, dict);
-            if(!validNotOperandTypeSet.containsAll(exprTypeSet.getTypeSet())){
-                throw new Error("Illigal type is given for not operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+            ExprTypeSet resultTypeSet = new ExprTypeSet();
+            for(AstType t : exprTypeSet){
+                AstType result = OperandTypeChecker.NOT.type(t);
+                if(result == null){
+                    throw new Error("Illigal types given for not operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+                }
+                resultTypeSet.add(result);
             }
-			return exprTypeSet;
+			return resultTypeSet;
         }
     }
 

@@ -3,7 +3,7 @@ package type;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ExprTypeSet {
+public class ExprTypeSet implements Iterable{
     private Set<AstType> typeSet;
 
     public ExprTypeSet(){
@@ -27,5 +27,10 @@ public class ExprTypeSet {
     @Override
     public String toString(){
         return typeSet.toString();
+    }
+
+    @Override
+    public Iterator<AstType> iterator(){
+        return typeSet;
     }
 }
