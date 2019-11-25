@@ -12,16 +12,26 @@ public class ExprTypeSetLub extends ExprTypeSet{
         super(type);
     }
 
+    private AstType getType(){
+        if(typeSet.size() > 1){
+            throw new Error("InternalError: typeset size is greatar than 1: "+typeSet.toString());
+        }
+        for(AstType type : typeSet){
+            return type;
+        }
+        return AstType.BOT;
+    }
+
     @Override
     public void add(AstType type){
-        if(type == AstType.BOT) return;
         if(typeSet.isEmpty()){
             typeSet.add(type);
         }else{
+            if(type == AstType.BOT) return;
             if(typeSet.size() != 1){
                 throw new Error("InternalError: Illigal exprTypeSet state: "+typeSet.toString());
             }
-            AstType t = typeSet.iterator().next();
+            AstType t = getType();
             typeSet.clear();
             typeSet.add(t.lub(type));
         }
@@ -34,7 +44,7 @@ public class ExprTypeSetLub extends ExprTypeSet{
         if(thisSet.size() > 1 || thatSet.size() > 1){
             throw new Error("InternalError: Illigal exprTypeSet state: "+typeSet.toString());
         }
-        AstType t = typeSet.iterator().next();
+        AstType t = getType();
         for(AstType type : thisSet){
             t = t.lub(type);
         }
@@ -43,6 +53,6 @@ public class ExprTypeSetLub extends ExprTypeSet{
 
     @Override
     public ExprTypeSet clone(){
-        return new ExprTypeSetLub(typeSet.iterator().next());
+        return new ExprTypeSetLub(getType());
     }
 }

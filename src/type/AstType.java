@@ -8,7 +8,6 @@
  */
 package type;
 
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,7 +43,7 @@ HeapObject
 public class AstType {
     static Map<String, AstBaseType> definedTypes = new HashMap<String, AstBaseType>();
     static Map<VMDataType, JSValueVMType> vmtToType = new HashMap<VMDataType, JSValueVMType>();
-    static Map<JSValueType, Set<JSValueVMType>> childrenMap = new HashMap<>();
+    static Map<AstType, Set<AstType>> childrenMap = new HashMap<>();
     static void defineType(String name) {
         AstBaseType t = new AstBaseType(name);
         definedTypes.put(name, t);
@@ -53,15 +52,17 @@ public class AstType {
         AstBaseType t = new JSValueType(name, parent);
         definedTypes.put(name, t);
     }
-    private static void putChild(JSValueType parent, JSValueVMType vmt){
-        Set<JSValueVMType> set = childrenMap.get(parent);
-        if(set == null){
-            set = new HashSet<>();
+    private static void putChild(AstType parent, AstType child){
+        Set<AstType> children = childrenMap.get(parent);
+        if(children == null){
+            children = new HashSet<>();
         }
-        set.add(vmt);
-        childrenMap.put(parent, set);
-        if(parent.parent != null){
-            putChild(parent.parent, vmt);
+        children.add(child);
+        childrenMap.put(parent, children);
+        if(!(parent instanceof JSValueType)) return;
+        JSValueType jparent = (JSValueType)parent;
+        if(jparent.parent != null){
+            putChild(jparent.parent, child);
         }
     }
     static void defineJSValueVMType(String name, JSValueType parent, VMDataType vmt) {
@@ -76,7 +77,7 @@ public class AstType {
     public static JSValueVMType get(VMDataType vmt) {
         return vmtToType.get(vmt);
     }
-    public static Set<JSValueVMType> getChildren(JSValueType parent){
+    public static Set<AstType> getChildren(AstType parent){
         return childrenMap.get(parent);
     }
     static {

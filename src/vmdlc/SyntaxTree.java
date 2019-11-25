@@ -18,7 +18,6 @@ import type.TypeMapSet;
 import vmdlc.SyntaxTree;
 
 import java.util.Set;
-import java.util.Map;
 
 public class SyntaxTree extends Tree<SyntaxTree> {
     TypeMapSet dict;

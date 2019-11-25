@@ -1,83 +1,48 @@
 package type;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class TypeMapSetFull extends TypeMapSet {
-
-    public TypeMapSetFull(){
+public class TypeMapSetHalf extends TypeMapSetFull {
+    private Set<String> dispatchSet;
+    public TypeMapSetHalf(){
         super();
+        dispatchSet = new HashSet<>();
     }
 
-    public TypeMapSetFull(Set<TypeMap> _typeMapSet){
+    public TypeMapSetHalf(Set<TypeMap> _typeMapSet, Set<String> _dispatchSet){
         super(_typeMapSet);
+        dispatchSet = _dispatchSet;
     }
 
     @Override
-    public void setDispatchSet(Set<String> set){}
+    public void setDispatchSet(Set<String> set){
+        dispatchSet = set;
+    }
     @Override
     public Set<String> getDispatchSet(){
-        return new HashSet<String>(0);
+        return dispatchSet;
     }
+    @Override
     protected Set<AstType> getTypeSet(String name, AstType type){
-        Set<AstType> set = AstType.getChildren(type);
-        if(set == null){
+        Set<AstType> set;
+        if(dispatchSet.contains(name)){
+            set = super.getTypeSet(name, type);
+        }else{
             set = new HashSet<>();
-        }
-        if(set.isEmpty()){
             set.add(type);
         }
         return set;
     }
-    @Override
-    public Set<TypeMap> getAddedSet(TypeMap typeMap, String name, AstType type){
-        Set<TypeMap> addedSet = new HashSet<>();
-        Set<AstType> addTypes = getTypeSet(name, type);
-        for(AstType t : addTypes){
-            TypeMap temp = typeMap.clone();
-            temp.add(name, t);
-            addedSet.add(temp);
+    private Set<String> cloneDispatchSet(){
+        Set<String> newSet = new HashSet<>();
+        for(String name : dispatchSet){
+            newSet.add(name);
         }
-        return addedSet;
-    }
-    @Override
-    public Set<TypeMap> getAddedSet(TypeMap typeMap, Map<String, AstType> map){
-        Set<TypeMap> tempSet = new HashSet<>();
-        tempSet.add(typeMap);
-        for(String name : map.keySet()){
-            AstType type = map.get(name);
-            Set<TypeMap> newTempSet = new HashSet<>();
-            for(TypeMap map2 : tempSet){
-                newTempSet.addAll(getAddedSet(map2, name, type));
-            }
-            tempSet = newTempSet;
-        }
-        return tempSet;
-    }
-    @Override
-    public Set<TypeMap> getAssignedSet(TypeMap typeMap, String name, AstType type){
-        Set<TypeMap> assignedSet = new HashSet<>();
-        Set<AstType> assignTypes = getTypeSet(name, type);
-        for(AstType t : assignTypes){
-            TypeMap temp = typeMap.clone();
-            temp.assign(name, t);
-            assignedSet.add(temp);
-        }
-        return assignedSet;
-    }
-    @Override
-    public boolean containsKey(String key){
-        if(typeMapSet.isEmpty()) return false;
-        TypeMap typeMap = getOne();
-        return typeMap.containsKey(key);
-    }
-    @Override
-    public Set<String> getKeys(){
-        if(typeMapSet.isEmpty()) return new HashSet<>();
-        TypeMap typeMap = getOne();
-        return typeMap.keySet();
+        return newSet;
     }
     @Override
     public TypeMapSet select(Collection<String> domain){
@@ -98,7 +63,7 @@ public class TypeMapSetFull extends TypeMapSet {
             }
             selectedSet.add(selectedMap);
         }
-        return new TypeMapSetFull(selectedSet);
+        return new TypeMapSetHalf(selectedSet, cloneDispatchSet());
     }
     @Override
     public TypeMapSet clone(){
@@ -106,19 +71,55 @@ public class TypeMapSetFull extends TypeMapSet {
         for(TypeMap typeMap : typeMapSet){
             cloneTypeMapSet.add(typeMap.clone());
         }
-        return new TypeMapSetFull(cloneTypeMapSet);
+        return new TypeMapSetHalf(cloneTypeMapSet, cloneDispatchSet());
+    }
+    private AstType lub(Set<TypeMap> maps, String name){
+        AstType result = AstType.BOT;
+        for(TypeMap map : maps){
+            result = result.lub(map.get(name));
+        }
+        return result;
     }
     @Override
     public TypeMapSet combine(TypeMapSet that){
-        Set<TypeMap> newTypeMapSet = new HashSet<>();
-        Set<TypeMap> thatTypeMapSet = that.getTypeMapSet();
-        for(TypeMap m : typeMapSet){
-            newTypeMapSet.add(m.clone());
+        Set<TypeMap> newSet = new HashSet<>();
+        Map<String, AstType> thisLubMap = new HashMap<>();
+        Map<String, AstType> thatLubMap = new HashMap<>();
+        for(String name : getKeys()){
+            if(dispatchSet.contains(name)) continue;
+            thisLubMap.put(name, lub(typeMapSet, name));
         }
-        for(TypeMap m : thatTypeMapSet){
-            newTypeMapSet.add(m.clone());
+        for(String name : that.getKeys()){
+            if(dispatchSet.contains(name)) continue;
+            thatLubMap.put(name, lub(typeMapSet, name));
         }
-        return new TypeMapSetFull(newTypeMapSet);
+        for(TypeMap map : this){
+            TypeMap newMap = new TypeMap();
+            for(String name : map.keySet()){
+                AstType type;
+                if(dispatchSet.contains(name)){
+                    type = map.get(name);
+                }else{
+                    type = map.get(name).lub(thatLubMap.get(name));
+                }
+                newMap.add(name, type);
+            }
+            newSet.add(newMap);
+        }
+        for(TypeMap map : that){
+            TypeMap newMap = new TypeMap();
+            for(String name : map.keySet()){
+                AstType type;
+                if(dispatchSet.contains(name)){
+                    type = map.get(name);
+                }else{
+                    type = map.get(name).lub(thisLubMap.get(name));
+                }
+                newMap.add(name, type);
+            }
+            newSet.add(newMap);
+        }
+        return new TypeMapSetHalf(newSet, cloneDispatchSet());
     }
     private Set<TypeMap> getBottedSet(String[] varNames){
         Set<TypeMap> newSet = new HashSet<>();
@@ -152,7 +153,7 @@ public class TypeMapSetFull extends TypeMapSet {
         if(newSet.isEmpty()){
             newSet = getBottedSet(varNames);
         }
-        return new TypeMapSetFull(newSet);
+        return new TypeMapSetHalf(newSet, cloneDispatchSet());
     }
     private int indexOf(String[] varNames, String v) {
         for (int i = 0; i < varNames.length; i++) {
@@ -177,7 +178,7 @@ public class TypeMapSetFull extends TypeMapSet {
             }
             newSet.add(replacedMap);
         }
-        return new TypeMapSetFull(newSet);
+        return new TypeMapSetHalf(newSet, cloneDispatchSet());
     }
     @Override
     public TypeMapSet getBottomDict(){
@@ -188,7 +189,7 @@ public class TypeMapSetFull extends TypeMapSet {
             newGamma.add(v, AstType.BOT);
         }
         newSet.add(newGamma);
-        return new TypeMapSetFull(newSet);
+        return new TypeMapSetHalf(newSet, cloneDispatchSet());
     }
     @Override
     public Set<VMDataType[]> filterTypeVecs(String[] formalParams, Set<VMDataType[]> vmtVecs){
@@ -210,20 +211,9 @@ public class TypeMapSetFull extends TypeMapSet {
         return filtered;
     }
     @Override
-    public boolean noInformationAbout(String[] formalParams){
-        NEXT_MAP: for(TypeMap map : typeMapSet){
-            for(String name : formalParams){
-                AstType type = map.get(name);
-                if(type==AstType.BOT) continue NEXT_MAP;
-            }
-            return true;
-        }
-        return false;
-    }
-    @Override
     public boolean equals(Object obj) {
-        if (this == obj || obj != null && obj instanceof TypeMapSetFull) {
-            TypeMapSetFull tm = (TypeMapSetFull)obj;
+        if (this == obj || obj != null && obj instanceof TypeMapSetHalf) {
+            TypeMapSetFull tm = (TypeMapSetHalf)obj;
             Set<TypeMap> tmTypeMapSet = tm.getTypeMapSet();
             return (typeMapSet != null && tmTypeMapSet !=null && typeMapSet.equals(tmTypeMapSet));
         } else {

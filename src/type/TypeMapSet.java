@@ -3,6 +3,7 @@ package type;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 public abstract class TypeMapSet implements Iterable<TypeMap>{
@@ -21,8 +22,7 @@ public abstract class TypeMapSet implements Iterable<TypeMap>{
     public Set<TypeMap> getTypeMapSet(){
         return typeMapSet;
     }
-    public abstract void addDispatch(String name);
-    public abstract void clearDispatch();
+    public abstract void setDispatchSet(Set<String> set);
     public abstract Set<String> getDispatchSet();
     public abstract Set<TypeMap> getAddedSet(TypeMap typeMap, String name, AstType type);
     public abstract Set<TypeMap> getAssignedSet(TypeMap typeMap, String name, AstType type);
@@ -34,7 +34,9 @@ public abstract class TypeMapSet implements Iterable<TypeMap>{
     public abstract TypeMapSet rematch(String[] params, String[] args, Set<String> domain);
     public abstract TypeMapSet getBottomDict();
     public abstract Set<VMDataType[]> filterTypeVecs(String[] formalParams, Set<VMDataType[]> vmtVecs);
-    public abstract boolean hasBottom();
+    public abstract boolean noInformationAbout(String[] formalParams);
+
+    public abstract Set<TypeMap> getAddedSet(TypeMap typeMap, Map<String, AstType> map);
 
     @Override
     public abstract TypeMapSet clone();
@@ -47,5 +49,12 @@ public abstract class TypeMapSet implements Iterable<TypeMap>{
     @Override
     public Iterator<TypeMap> iterator(){
         return typeMapSet.iterator();
+    }
+
+    public TypeMap getOne(){
+        for(TypeMap map : typeMapSet){
+            return map;
+        }
+        return null;
     }
 }

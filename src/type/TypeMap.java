@@ -16,7 +16,7 @@ import java.util.Set;
 import java.lang.Error;
 
 public class TypeMap{
-    public static Map<String, AstType> global;
+    public static Map<String, AstType> global = new HashMap<>();
     private Map<String, AstType> dict;
 
     public TypeMap() {
