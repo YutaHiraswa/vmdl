@@ -114,6 +114,11 @@ public class TypeMap{
     }
 
     @Override
+    public int hashCode(){
+        return dict.hashCode();
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (this == obj || obj != null && obj instanceof TypeMap) {
             TypeMap tm = (TypeMap)obj;

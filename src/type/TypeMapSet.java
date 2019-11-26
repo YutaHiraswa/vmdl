@@ -42,6 +42,14 @@ public abstract class TypeMapSet implements Iterable<TypeMap>{
     public abstract TypeMapSet clone();
     
     @Override
+    public abstract boolean equals(Object obj);
+
+    @Override
+    public int hashCode(){
+        return typeMapSet.hashCode();
+    }
+
+    @Override
     public String toString(){
         return typeMapSet.toString();
     }

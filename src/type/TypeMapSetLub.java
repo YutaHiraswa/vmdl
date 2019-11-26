@@ -152,11 +152,12 @@ public class TypeMapSetLub extends TypeMapSetFull {
     }
     @Override
     public boolean equals(Object obj) {
-        if (this == obj || obj != null && obj instanceof TypeMapSetFull) {
-            TypeMapSetFull tm = (TypeMapSetFull)obj;
+        if (this == obj || obj != null && obj instanceof TypeMapSet) {
+            TypeMapSet tm = (TypeMapSet)obj;
             Set<TypeMap> tmTypeMapSet = tm.getTypeMapSet();
             return (typeMapSet != null && tmTypeMapSet !=null && typeMapSet.equals(tmTypeMapSet));
         } else {
+            
             return false;
         }
     }
