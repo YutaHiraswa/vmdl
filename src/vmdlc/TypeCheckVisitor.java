@@ -220,7 +220,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree nodeName = node.get(Symbol.unique("name"));
             SyntaxTree nameNode = definition.get(Symbol.unique("name"));
             String name = nameNode.toText();
-            TypeMap.addGlobal(name, funtype);
+            boolean isAdded = TypeMap.addGlobal(name, funtype);
+            if(!isAdded){
+                ErrorPrinter.error("Double define: "+name, node);
+            }
 
             Set<String> domain = new HashSet<String>(dict.getKeys());
 
@@ -624,7 +627,11 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             AstType range = AstType.nodeToType(typeNode.get(1));
             SyntaxTree nameNode = node.get(Symbol.unique("name"));
             AstType type = new AstProductType(domain, range);
-            TypeMap.addGlobal(nameNode.toText(), type);
+            String name = nameNode.toText();
+            boolean isAdded = TypeMap.addGlobal(name, type);
+            if(!isAdded){
+                ErrorPrinter.error("Double define: "+name, node);
+            }
             return dict;
         }
     }
@@ -638,7 +645,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             AstType type = AstType.nodeToType(typeNode);
             String varName = varNode.toText();
             String cValue = valueNode.toText().replace("\\\"", "\"").replace("\\\\", "\\");
-            TypeMap.addGlobal(varName, type);
+            boolean isAdded = TypeMap.addGlobal(varName, type);
+            if(!isAdded){
+                ErrorPrinter.error("Double define: "+varName, node);
+            }
             AstToCVisitor.addCConstant(varName, cValue);
             return dict;
         }
