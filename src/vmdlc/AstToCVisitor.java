@@ -714,13 +714,13 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class _True extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            print("JS_TRUE");
+            print("1");
         }
     }
     public class _False extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            print("JS_FALSE");
+            print("0");
         }
     }
 
