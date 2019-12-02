@@ -1,5 +1,6 @@
 /bin/
 *~
+vmdl_test
 .DS_Store
 .classpath
 .project
