@@ -84,8 +84,8 @@ public class AstType {
         definedMappingTypes.put(name, type);
         return type;
     }
-    public static void addAlias(String typeName, AstBaseType realType){
-        definedTypes.put(typeName, realType);
+    public static void addAlias(String typeName, AstBaseType realType, String cTypeName){
+        definedTypes.put(typeName, new AstAliasType(typeName, realType, cTypeName));
     }
     public static AstType get(String name) {
         if(name.endsWith("[]")){
@@ -120,6 +120,9 @@ public class AstType {
         defineJSValueVMType("Flonum", jsNumType, VMDataType.get("flonum"));
         defineJSValueVMType("Special", jsValType, VMDataType.get("special"));
         JSValueType jsSpeType = (JSValueType) AstType.get("Special");
+        defineJSValueType("Bool", jsSpeType);
+        defineJSValueType("Null", jsSpeType);
+        defineJSValueType("Undefined", jsSpeType);
         defineJSValueType("JSObject", jsValType);
         JSValueType jsObjType = (JSValueType) AstType.get("JSObject");
         defineJSValueVMType("SimpleObject", jsObjType, VMDataType.get("simple_object"));
@@ -131,7 +134,6 @@ public class AstType {
         defineJSValueVMType("StringObject", jsObjType, VMDataType.get("string_object"));
         defineJSValueVMType("NumberObject", jsObjType, VMDataType.get("number_object"));
         defineJSValueVMType("BooleanObject", jsObjType, VMDataType.get("boolean_object"));
-        defineJSValueType("Bool", jsSpeType);
     }
 
     String name;
@@ -165,12 +167,17 @@ public class AstType {
 
     public boolean isSuperOrEqual(AstType t) {
         if(t == AstType.BOT) return true;
-        if(!(t instanceof AstBaseType)){
+        if(!(t instanceof AstBaseType) || !(this instanceof AstBaseType)){
             return t.equals(this);
         }
-        AstBaseType type = (AstBaseType)t;
+        AstBaseType thisType;
+        if(this instanceof AstAliasType) thisType = ((AstAliasType)this).realType;
+        else thisType = (AstBaseType)this;
+        AstBaseType type;
+        if(t instanceof AstAliasType) type = ((AstAliasType)t).realType;
+        else type = (AstBaseType)t;
         while(type != null){
-            if (type == this) return true;
+            if (type == thisType) return true;
             type = type.parent;
         }
         return false;
@@ -352,6 +359,29 @@ HeapObject
             if(!(obj instanceof AstProductType)) return false;
             return (domain.equals(((AstProductType)obj).domain)
                  && range.equals(((AstProductType)obj).range));
+        }
+    }
+
+    public static class AstAliasType extends AstBaseType{
+        private AstBaseType realType;
+        private String cTypeName;
+
+        private AstAliasType(String name, AstBaseType parent) {
+            super(name, parent);
+        }
+
+        public AstAliasType(String name, AstBaseType _realType, String _cTypeName){
+            super(name, _realType.parent);
+            realType = _realType;
+            cTypeName = _cTypeName;
+        }
+
+        public AstBaseType getRealType(){
+            return realType;
+        }
+
+        public String getCTypeName(){
+            return cTypeName;
         }
     }
 

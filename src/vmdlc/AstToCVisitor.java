@@ -16,9 +16,11 @@ import java.util.HashMap;
 import java.util.Stack;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.lang.Exception;
+import java.lang.Integer;
 
 import vmdlc.AstToCVisitor.DefaultVisitor;
 
@@ -27,9 +29,14 @@ import dispatch.DispatchPlan;
 import dispatch.RuleSet;
 import type.AstType;
 import type.ExprTypeSet;
+import type.FunctionAnnotation;
+import type.FunctionTable;
 import type.TypeMapSet;
 import type.VMDataType;
+import type.AstType.AstAliasType;
 import type.AstType.AstMappingType;
+import type.AstType.AstPairType;
+import type.AstType.AstProductType;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     static final boolean OUTPUT_DEBUG_INFO = false;
@@ -62,20 +69,15 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
     private static Map<String, String> cConstTable = new HashMap<>();
-    private static Map<String, String> cTypeTable = new HashMap<>();
     Stack<StringBuffer> outStack;
     Stack<MatchRecord> matchStack;
     String currentFunctionName;
     OperandSpecifications opSpec;
+    Main.OutputMode outputMode;
     
     public static void addCConstant(String name, String cValue){
         cConstTable.put(name, cValue);
     }
-
-    public static void addCType(String name, String cValue){
-        cTypeTable.put(name, cValue);
-    }
-
 
     public AstToCVisitor() {
         init(AstToCVisitor.class, new DefaultVisitor());
@@ -83,15 +85,16 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         matchStack = new Stack<MatchRecord>();
     }
 
-    public String start(Tree<?> node, OperandSpecifications opSpec) {
+    public String start(Tree<?> node, OperandSpecifications opSpec, Main.OutputMode outputMode) {
         this.opSpec = opSpec;
+        this.outputMode = outputMode;
         try {
             outStack.push(new StringBuffer());
             for (Tree<?> chunk : node) {
                 visit(chunk, 0);
             }
             StringBuffer sb = outStack.pop();
-            sb.append(getEpilogueLabel() + ": ;\n");
+            if(!outputMode.isFunctionMode()) sb.append(getEpilogueLabel() + ": ;\n");
             String program = sb.toString();
             return program;
         } catch (Exception e) {
@@ -156,29 +159,80 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             currentFunctionName = name;
 
             Tree<?> bodyNode = node.get(Symbol.unique("definition"));
+            if(outputMode.isFunctionMode()){
+                SyntaxTree typeNode = (SyntaxTree)node.get(Symbol.unique("type"));
+                AstType type = AstType.nodeToType(typeNode);
+                if(!(type instanceof AstProductType)){
+                    throw new Error("Function is not function type");
+                }
+                AstProductType funType = (AstProductType)type;
+                AstType funDomainType = funType.getDomain();
+                List<AstType> varTypes;
+                if(funDomainType instanceof AstPairType){
+                    AstPairType d = (AstPairType) funDomainType;
+                    varTypes = d.getTypes();
+                }else{
+                    varTypes = new ArrayList<>(1);
+                    varTypes.add(funDomainType);
+                }
+                print(funType.getRange().toString()+" "+name+" (");
+                SyntaxTree paramsNode = ((SyntaxTree)bodyNode).get(Symbol.unique("params"));
+                int size = paramsNode.size();
+                if(!FunctionTable.contains(name)){
+                    throw new Error("FunctionTable is broken: not has "+name);
+                }
+                if(FunctionTable.hasAnnotations(name, FunctionAnnotation.needContext)){
+                    print("Context* context");
+                    if(size != 0){
+                        print(", ");
+                    }
+                }
+                int i=0;
+                while(true){
+                    AstType varType = varTypes.get(i);
+                    String varName = paramsNode.get(i).toText();
+                    String typeName;
+                    if(varType instanceof AstAliasType){
+                        typeName = ((AstAliasType)varType).getCTypeName().toString();
+                    }else{
+                        typeName = varType.toString();
+                    }
+                    print(typeName+" "+varName);
+                    i++;
+                    if(i>=size) break;
+                    print(", ");
+                }
+                println(") {");
+                indent++;
+            }
             visit(bodyNode, indent);
+            if(outputMode.isFunctionMode()){
+                print("}");
+            }
         }
     }
     public class FunctionDefinition extends DefaultVisitor {
         public void accept(Tree<?> node, int indent) throws Exception {
-            Tree<?> funNameNode = node.get(Symbol.unique("name"));
-            Tree<?> paramsNode = node.get(Symbol.unique("params"));
-            String[] jsvParams = new String[paramsNode.size()];
-            int jsvNum = 0;
+            if(!outputMode.isFunctionMode()){
+                Tree<?> funNameNode = node.get(Symbol.unique("name"));
+                Tree<?> paramsNode = node.get(Symbol.unique("params"));
+                String[] jsvParams = new String[paramsNode.size()];
+                int jsvNum = 0;
 
-            for (int i = 0; i < paramsNode.size(); i++) {
-                String paramName = paramsNode.get(i).toText();
-                // JSValue parameter's name starts with v as defined in InstructionDefinitions.java
-                if (paramName.startsWith("v")) {
-                    jsvParams[jsvNum++] = paramName;
+                for (int i = 0; i < paramsNode.size(); i++) {
+                    String paramName = paramsNode.get(i).toText();
+                    // JSValue parameter's name starts with v as defined in InstructionDefinitions.java
+                    if (paramName.startsWith("v")) {
+                        jsvParams[jsvNum++] = paramName;
+                    }
                 }
+                println("DEFLABEL(HEAD):");
+                print("INSN_COUNT" + jsvNum + "(" + funNameNode.toText());
+                for (int i = 0; i < jsvNum; i++) {
+                    print("," + jsvParams[i]);
+                }
+                println(");");
             }
-            println("DEFLABEL(HEAD):");
-            print("INSN_COUNT" + jsvNum + "(" + funNameNode.toText());
-            for (int i = 0; i < jsvNum; i++) {
-                print("," + jsvParams[i]);
-            }
-            println(");");
 
             Tree<?> bodyNode = node.get(Symbol.unique("body"));
             visit(bodyNode, indent);
@@ -214,37 +268,35 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    private static Map<String, Integer> matchLabelGeneratedSizeMap = new HashMap<>();
+
     public class Match extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             MatchProcessor mp = new MatchProcessor((SyntaxTree) node);
             String[] formalParams = mp.getFormalParams();
-            String label = mp.getLabel();
+            String rawLabel = mp.getLabel();
+            String label;
+            if(outputMode.isFunctionMode()){
+                Integer labelCount = matchLabelGeneratedSizeMap.get(rawLabel);
+                if(labelCount == null){
+                    labelCount = 0;
+                }
+                matchLabelGeneratedSizeMap.put(rawLabel, labelCount + 1);
+                label = "_" + rawLabel + labelCount;
+            }else{
+                label = "";
+            }
+
             TypeMapSet dict = ((SyntaxTree) node).getTypeMapSet();
 
             println("/* "+dict.toString()+" */");
 
-            matchStack.add(new MatchRecord(currentFunctionName, label, node.getLineNum(), formalParams));
+            matchStack.add(new MatchRecord(currentFunctionName, rawLabel, node.getLineNum(), formalParams));
             print(matchStack.peek().getHeadLabel()+":"+"\n");
 
             Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
-
-            Set<VMDataType[]> dontCareInput = opSpec.getUnspecifiedOperands(currentFunctionName);
-            Set<VMDataType[]> errorInput = opSpec.getErrorOperands(currentFunctionName);
-            Set<RuleSet.OperandDataTypes> errorConditions = new HashSet<RuleSet.OperandDataTypes>();
-
-            Set<VMDataType[]> removeSet = new HashSet<VMDataType[]>();
-            for (VMDataType[] dts: dontCareInput) {
-                removeSet.add(dts);
-            }
-            for (VMDataType[] dts: errorInput) {
-                removeSet.add(dts);
-                errorConditions.add(new RuleSet.OperandDataTypes(dts));
-            }
-            String errorAction = new String("LOG_EXIT(\"unexpected operand type\\n\");\n");
-            if (errorConditions.size() > 0) {
-                rules.add(new RuleSet.Rule(errorAction, errorConditions));
-            }
+            Set<VMDataType[]> acceptInput = new HashSet<>();
 
             for (int i = 0; i < mp.size(); i++) {
                 Set<VMDataType[]> vmtVecs = mp.getVmtVecCond(i);
@@ -253,6 +305,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 if (vmtVecs.size() == 0)
                     continue;
 
+                acceptInput.addAll(vmtVecs);
+                
                 /* action */
                 outStack.push(new StringBuffer());
                 Tree<?> stmt = mp.getBodyAst(i);
@@ -261,12 +315,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
 
                 /* OperandDataTypes set */
                 Set<RuleSet.OperandDataTypes> odts = new HashSet<RuleSet.OperandDataTypes>();
-                NEXT_VMDT: for (VMDataType[] vmtVec: vmtVecs) {
-                    for (VMDataType[] remove : removeSet) {
-                        if (Arrays.equals(vmtVec, remove)) {
-                            continue NEXT_VMDT;
-                        }
-                    }
+                for (VMDataType[] vmtVec: vmtVecs) {
                     RuleSet.OperandDataTypes odt = new RuleSet.OperandDataTypes(vmtVec);
                     odts.add(odt);
                 }
@@ -287,13 +336,31 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 rules.add(r);
             }
 
+            /* print error types (NOT in accept types) */
+            Set<VMDataType[]> errorInput = opSpec.getErrorOperands(currentFunctionName);
+            Set<RuleSet.OperandDataTypes> errorConditions = new HashSet<RuleSet.OperandDataTypes>();
+            NEXT_DTS: for (VMDataType[] dts: errorInput) {
+                int length = dts.length;
+                NEXT_ARRAY: for (VMDataType[] accept: acceptInput) {
+                    for(int i=0; i<length; i++){
+                        if(!dts[i].equals(accept[i])) continue NEXT_ARRAY;
+                    }
+                    continue NEXT_DTS;
+                }
+                errorConditions.add(new RuleSet.OperandDataTypes(dts));
+            }
+            String errorAction = new String("LOG_EXIT(\"unexpected operand type\\n\");\n");
+            if (errorConditions.size() > 0) {
+                rules.add(new RuleSet.Rule(errorAction, errorConditions));
+            }
+
             RuleSet rs = new RuleSet(formalParams, rules);
 
             DispatchPlan dp = new DispatchPlan(Main.option);
             DispatchProcessor dispatchProcessor = new DispatchProcessor();
             String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
             dispatchProcessor.setLabelPrefix(labelPrefix + "_"+ matchStack.peek().name + "_");
-            String s = dispatchProcessor.translate(rs, dp, Main.option, currentFunctionName);
+            String s = dispatchProcessor.translate(rs, dp, Main.option, currentFunctionName, label);
             println(s);
 
             println(matchStack.pop().getTailLabel()+": ;");
@@ -303,19 +370,19 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Return extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            if (VM_INSTRUCTION) {
+            if (outputMode.isFunctionMode()) {
+                printIndent(indent, "return ");
+                for (Tree<?> expr : node) {
+                    visit(expr, 0);
+                }
+                println(";");
+            } else {
                 printIndent(indent, "regbase[r0] = ");
                 for (Tree<?> expr : node) {
                     visit(expr, 0);
                 }
                 println(";");
                 println("goto "+getEpilogueLabel()+";");
-            } else {
-                printIndent(indent, "return ");
-                for (Tree<?> expr : node) {
-                    visit(expr, 0);
-                }
-                println(";");
             }
         }
     }
@@ -618,9 +685,18 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(Tree<?> node, int indent) throws Exception {
             visit(node.get(0), 0);
             print("(");
-            for (int i = 1; i < node.size(); i++) {
-                visit(node.get(i), 0);
+            String functionName = node.get(0).toText();
+            if(!FunctionTable.contains(functionName)){
+                throw new Error("FunctionTable is broken: not has "+functionName);
             }
+            Tree<?> argsNode = node.get(1);
+            if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.needContext)){
+                print("context");
+                if(argsNode.size() != 0){
+                    print(", ");
+                }
+            }
+            visit(argsNode, 0);
             print(")");
         }
     }
@@ -681,13 +757,13 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
-    public class Float extends DefaultVisitor {
+    public class _Float extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             print(node.toText());
         }
     }
-    public class Integer extends DefaultVisitor {
+    public class _Integer extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             print(node.toText());
@@ -742,13 +818,14 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class UserTypeName extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            String nodeName = node.toText();
-            String typeName = cTypeTable.get(nodeName);
-            if(typeName != null){
-                print(typeName);
+            AstType type = AstType.nodeToType((SyntaxTree)node);
+            String typeName;
+            if(type instanceof AstAliasType){
+                typeName = ((AstAliasType)type).getCTypeName();
             }else{
-                print(nodeName);
+                typeName = type.toString();
             }
+            print(typeName);
         }
     }
     public class Ctype extends DefaultVisitor {
