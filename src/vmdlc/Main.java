@@ -33,6 +33,7 @@ import vmdlc.TypeCheckVisitor;
 
 public class Main {
     static final String VMDL_GRAMMAR = "ejsdsl.nez";
+    static final String INLINE_FILE = "./inlines.inline";
     static String sourceFile;
     static String dataTypeDefFile;
     static String vmdlGrammarFile;
@@ -44,15 +45,21 @@ public class Main {
     static Option option = new Option();
 
     public static enum OutputMode{
-        Instruction(false),
-        Function(true);
+        Instruction(false, true),
+        Function(true, true),
+        MakeInlineFunction(true, false);
 
         private boolean functionMode;
-        private OutputMode(boolean functionMode){
+        private boolean makeInlineMode;
+        private OutputMode(boolean functionMode, boolean makeInlineMode){
             this.functionMode = functionMode;
+            this.makeInlineMode = makeInlineMode;
         }
         public boolean isFunctionMode(){
             return functionMode;
+        }
+        public boolean isMakeInlineMode(){
+            return makeInlineMode;
         }
     };
 
@@ -127,6 +134,7 @@ public class Main {
 
         //grammar.dump();
         Parser parser = grammar.newParser(ParserStrategy.newSafeStrategy());
+        //Parser parser = new Parser(grammar, "Expression", ParserStrategy.newSafeStrategy());
 
         //Source source = new StringSource("externC constant cint aaa = \"-1\";");
         Source source = new FileSource(sourceFile);
@@ -164,9 +172,23 @@ public class Main {
         DispatchProcessor.srand(seed);
 
         SyntaxTree ast = parse(sourceFile);
+        System.err.println(ast.toString());
+        System.exit(0);
 
         ErrorPrinter.setSource(sourceFile);
-        new ExternProcessVisitor().start(ast);
+        String functionName = new ExternProcessVisitor().start(ast);
+        if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.vmInstruction)){
+            if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.makeInline)){
+                ErrorPrinter.error("Function has annotations of \"vmInstruction\" and \"makeInline\"");
+            }
+            outPutMode = OutputMode.Instruction;
+        }else{
+            if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.makeInline)){
+                outPutMode = OutputMode.Function;
+            }else{
+                outPutMode = OutputMode.MakeInlineFunction;
+            }
+        }
         new DesugarVisitor().start(ast);
         new DispatchVarCheckVisitor().start(ast);
         if(!outPutMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);

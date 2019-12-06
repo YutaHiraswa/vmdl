@@ -17,15 +17,17 @@ import type.AstType.AstProductType;
 import vmdlc.ExternProcessVisitor.DefaultVisitor;
 
 public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
+    String currentFunctionName;
     public ExternProcessVisitor(){
         init(ExternProcessVisitor.class, new DefaultVisitor());
     }
 
-    public void start(Tree<?> node){
+    public String start(Tree<?> node){
         try{
             for (Tree<?> chunk : node){
                 visit(chunk);
             }
+            return currentFunctionName;
         }catch(Exception e) {
             e.printStackTrace();
             throw new Error("visitor thrown an exception");
@@ -76,6 +78,7 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
     public class FunctionMeta extends Functions{
         @Override
         public void accept(Tree<?> node) throws Exception{
+            currentFunctionName = node.get(Symbol.unique("name")).toText();
             super.accept(node);
         }
     }
