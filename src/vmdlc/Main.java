@@ -40,26 +40,21 @@ public class Main {
     static String operandSpecFile;
     static String insnDefFile;
     static int typeMapIndex = 1;
-    static OutputMode outPutMode = OutputMode.Instruction;
+    static OutputMode outputMode = OutputMode.Instruction;
 
     static Option option = new Option();
 
     public static enum OutputMode{
-        Instruction(false, true),
-        Function(true, true),
-        MakeInlineFunction(true, false);
+        Instruction(false),
+        Function(true),
+        MakeInline(false);
 
         private boolean functionMode;
-        private boolean makeInlineMode;
-        private OutputMode(boolean functionMode, boolean makeInlineMode){
+        private OutputMode(boolean functionMode){
             this.functionMode = functionMode;
-            this.makeInlineMode = makeInlineMode;
         }
         public boolean isFunctionMode(){
             return functionMode;
-        }
-        public boolean isMakeInlineMode(){
-            return makeInlineMode;
         }
     };
 
@@ -80,8 +75,8 @@ public class Main {
                     throw new Error("Illigal option");
                 }
                 typeMapIndex = num;
-            } else if (opt.equals("-f")) {
-                outPutMode = OutputMode.Function;
+            } else if (opt.equals("--inline")) {
+                outputMode = OutputMode.MakeInline;
             } else if (opt.equals("-i")) {
                 insnDefFile = args[i++];
             } else if (opt.startsWith("-X")) {
@@ -106,6 +101,7 @@ public class Main {
             System.out.println("              -T1: use Lub");
             System.out.println("              -T2: partly detail");
             System.out.println("              -T3: perfectly detail");
+            System.out.println("   --inline  output inline expansion information");
             System.out.println("   -Xcmp:verify_diagram [true|false]");
             System.out.println("   -Xcmp:opt_pass [MR:S]");
             System.out.println("   -Xcmp:rand_seed n    set random seed of dispatch processor");
@@ -172,29 +168,27 @@ public class Main {
         DispatchProcessor.srand(seed);
 
         SyntaxTree ast = parse(sourceFile);
-        System.err.println(ast.toString());
-        System.exit(0);
 
         ErrorPrinter.setSource(sourceFile);
         String functionName = new ExternProcessVisitor().start(ast);
-        if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.vmInstruction)){
-            if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.makeInline)){
-                ErrorPrinter.error("Function has annotations of \"vmInstruction\" and \"makeInline\"");
-            }
-            outPutMode = OutputMode.Instruction;
+        String program;
+        if(outputMode == OutputMode.MakeInline) {
+            program = new InlineInfoVisitor().start(ast);
         }else{
-            if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.makeInline)){
-                outPutMode = OutputMode.Function;
+            if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.vmInstruction)){
+                if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.makeInline)){
+                    ErrorPrinter.error("Function has annotations of \"vmInstruction\" and \"makeInline\"");
+                }
+                outputMode = OutputMode.Instruction;
             }else{
-                outPutMode = OutputMode.MakeInlineFunction;
+                outputMode = OutputMode.Function;
             }
+            new DesugarVisitor().start(ast);
+            new DispatchVarCheckVisitor().start(ast);
+            if(!outputMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);
+            new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1]);
+            program = new AstToCVisitor().start(ast, opSpec, outputMode);
         }
-        new DesugarVisitor().start(ast);
-        new DispatchVarCheckVisitor().start(ast);
-        if(!outPutMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);
-        new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1]);
-        
-        String program = new AstToCVisitor().start(ast, opSpec, outPutMode);
 
         System.out.println(program);
     }
