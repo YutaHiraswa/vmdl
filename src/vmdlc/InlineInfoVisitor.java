@@ -123,7 +123,15 @@ public class InlineInfoVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
                 newSet = addedSet;
             }
-            println(InlineFileProcessor.code(FUNC, nameNode.toText()));
+            StringBuilder builder = new StringBuilder();
+            builder.append(nameNode.toText());
+            builder.append(' ');
+            for(int i=0; i<paramSize; i++){
+                builder.append(argNames.get(i));
+                if(i==paramSize-1) break;
+                builder.append(',');
+            }
+            println(InlineFileProcessor.code(FUNC, builder.toString()));
             visit(defNode.get(Symbol.unique("body")), new TypeMapSetFull(newSet));
             return false;
         }
@@ -158,6 +166,10 @@ public class InlineInfoVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     public class Return extends DefaultVisitor {
         List<String> argNameList;
+        private String getReturnExpressionString(Tree<?> node){
+            String returnNodeText = node.toText();
+            return returnNodeText.substring("return".length()).trim();
+        }
         @Override
         public boolean accept(Tree<?> node, TypeMapSetFull dict) throws Exception {
             for(TypeMap map : dict){
@@ -174,8 +186,7 @@ public class InlineInfoVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
                 println(InlineFileProcessor.code(COND, typeCondition.toString()));
             }
-            Tree<?> exprNode = node.get(0);
-            println(InlineFileProcessor.code(EXPR, exprNode.toText()));
+            println(InlineFileProcessor.code(EXPR, getReturnExpressionString(node)));
             return false;
         }
         @Override

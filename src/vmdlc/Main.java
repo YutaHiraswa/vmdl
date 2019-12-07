@@ -47,7 +47,7 @@ public class Main {
     public static enum OutputMode{
         Instruction(false),
         Function(true),
-        MakeInline(false);
+        MakeInline(true);
 
         private boolean functionMode;
         private OutputMode(boolean functionMode){
@@ -171,10 +171,7 @@ public class Main {
 
         ErrorPrinter.setSource(sourceFile);
         String functionName = new ExternProcessVisitor().start(ast);
-        String program;
-        if(outputMode == OutputMode.MakeInline) {
-            program = new InlineInfoVisitor().start(ast);
-        }else{
+        if(outputMode != OutputMode.MakeInline){
             if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.vmInstruction)){
                 if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.makeInline)){
                     ErrorPrinter.error("Function has annotations of \"vmInstruction\" and \"makeInline\"");
@@ -183,10 +180,16 @@ public class Main {
             }else{
                 outputMode = OutputMode.Function;
             }
-            new DesugarVisitor().start(ast);
-            new DispatchVarCheckVisitor().start(ast);
-            if(!outputMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);
-            new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1]);
+        }
+        new DesugarVisitor().start(ast);
+        new DispatchVarCheckVisitor().start(ast);
+        if(!outputMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);
+        new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1]);
+
+        String program;
+        if(outputMode == OutputMode.MakeInline){
+            program = new InlineInfoVisitor().start(ast);
+        }else{
             program = new AstToCVisitor().start(ast, opSpec, outputMode);
         }
 
