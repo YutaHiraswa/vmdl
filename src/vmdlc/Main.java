@@ -39,6 +39,7 @@ public class Main {
     static String vmdlGrammarFile;
     static String operandSpecFile;
     static String insnDefFile;
+    static String inlineExpansionFile;
     static int typeMapIndex = 1;
     static OutputMode outputMode = OutputMode.Instruction;
 
@@ -77,6 +78,8 @@ public class Main {
                 typeMapIndex = num;
             } else if (opt.equals("--inline")) {
                 outputMode = OutputMode.MakeInline;
+            } else if (opt.equals("--useinline")) {
+                inlineExpansionFile = args[i++];
             } else if (opt.equals("-i")) {
                 insnDefFile = args[i++];
             } else if (opt.startsWith("-X")) {
@@ -117,20 +120,23 @@ public class Main {
         }
     }
 
-    static SyntaxTree parse(String sourceFile) throws IOException {
+    static Grammar getGrammar() throws IOException {
         ParserGenerator pg = new ParserGenerator();
-        Grammar grammar = null;
-
+        Grammar grammar;
         if (vmdlGrammarFile != null)
             grammar = pg.loadGrammar(vmdlGrammarFile);
         else {
             StringSource grammarText = readDefaultGrammar();
             grammar = pg.newGrammar(grammarText, "nez");
         }
+        return grammar;
+    }
+
+    static SyntaxTree parse(String sourceFile) throws IOException {
+        Grammar grammar = getGrammar();
 
         //grammar.dump();
         Parser parser = grammar.newParser(ParserStrategy.newSafeStrategy());
-        //Parser parser = new Parser(grammar, "Expression", ParserStrategy.newSafeStrategy());
 
         //Source source = new StringSource("externC constant cint aaa = \"-1\";");
         Source source = new FileSource(sourceFile);
@@ -170,6 +176,7 @@ public class Main {
         SyntaxTree ast = parse(sourceFile);
 
         ErrorPrinter.setSource(sourceFile);
+        if(inlineExpansionFile != null) InlineFileProcessor.read(inlineExpansionFile, getGrammar());
         String functionName = new ExternProcessVisitor().start(ast);
         if(outputMode != OutputMode.MakeInline){
             if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.vmInstruction)){
@@ -184,7 +191,8 @@ public class Main {
         new DesugarVisitor().start(ast);
         new DispatchVarCheckVisitor().start(ast);
         if(!outputMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);
-        new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1]);
+        new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1], (inlineExpansionFile != null));
+        System.err.println("TYPECHECKRESULT:"+ast.toString());
 
         String program;
         if(outputMode == OutputMode.MakeInline){

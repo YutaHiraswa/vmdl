@@ -683,9 +683,9 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class FunctionCall extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
+            String functionName = node.get(0).toText();
             visit(node.get(0), 0);
             print("(");
-            String functionName = node.get(0).toText();
             if(!FunctionTable.contains(functionName)){
                 throw new Error("FunctionTable is broken: not has "+functionName);
             }
