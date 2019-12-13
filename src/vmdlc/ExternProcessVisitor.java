@@ -46,7 +46,7 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
         }
     }
 
-    public class Functions extends DefaultVisitor{
+    public class FunctionMeta extends DefaultVisitor{
         private Set<FunctionAnnotation> nodeToAnnotations(Tree<?> annotationsNode){
             if(annotationsNode.countSubNodes() == 0){
                 return Collections.emptySet();
@@ -64,6 +64,42 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
             Tree<?> typeNode = node.get(Symbol.unique("type"));
             Tree<?> annotationsNode = node.get(Symbol.unique("annotations"));
             Set<FunctionAnnotation> annotations = nodeToAnnotations(annotationsNode);
+            if(annotations.contains(FunctionAnnotation.vmInstruction) && annotations.contains(FunctionAnnotation.makeInline)){
+                ErrorPrinter.error("Function has annotations of \"vmInstruction\" and \"makeInline\"", (SyntaxTree)node);
+            }
+            String name = nameNode.toText();
+            currentFunctionName = name;
+            AstType type = AstType.nodeToType((SyntaxTree)typeNode);
+            if(!(type instanceof AstProductType)){
+                ErrorPrinter.error("Function is not function type", (SyntaxTree)typeNode);
+            }
+            if(!FunctionTable.contains(name)){
+                FunctionTable.add(name, (AstProductType)type, annotations);
+            }
+        }
+    }
+
+    public class CFunction extends DefaultVisitor{
+        private Set<FunctionAnnotation> nodeToAnnotations(Tree<?> annotationsNode){
+            if(annotationsNode.countSubNodes() == 0){
+                return Collections.emptySet();
+            }
+            Set<FunctionAnnotation> annotations = new HashSet<>();
+            for(Tree<?> annotation : annotationsNode){
+                FunctionAnnotation annotationEnum = FunctionAnnotation.valueOf(annotation.toText());
+                annotations.add(annotationEnum);
+            }
+            return annotations;
+        }
+        @Override
+        public void accept(Tree<?> node) throws Exception{
+            Tree<?> nameNode = node.get(Symbol.unique("name"));
+            Tree<?> typeNode = node.get(Symbol.unique("type"));
+            Tree<?> annotationsNode = node.get(Symbol.unique("annotations"));
+            Set<FunctionAnnotation> annotations = nodeToAnnotations(annotationsNode);
+            if(annotations.contains(FunctionAnnotation.vmInstruction) && annotations.contains(FunctionAnnotation.makeInline)){
+                ErrorPrinter.error("Function has annotations of \"vmInstruction\" and \"makeInline\"", (SyntaxTree)node);
+            }
             String name = nameNode.toText();
             AstType type = AstType.nodeToType((SyntaxTree)typeNode);
             if(!(type instanceof AstProductType)){
@@ -73,20 +109,6 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
                 ErrorPrinter.error("Double define: "+name, (SyntaxTree)node);
             }
             FunctionTable.add(name, (AstProductType)type, annotations);
-        }
-    }
-    public class FunctionMeta extends Functions{
-        @Override
-        public void accept(Tree<?> node) throws Exception{
-            currentFunctionName = node.get(Symbol.unique("name")).toText();
-            super.accept(node);
-        }
-    }
-
-    public class CFunction extends Functions{
-        @Override
-        public void accept(Tree<?> node) throws Exception{
-            super.accept(node);
         }
     }
 

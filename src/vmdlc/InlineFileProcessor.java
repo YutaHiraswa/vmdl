@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -100,7 +99,7 @@ public class InlineFileProcessor {
             int size = original.size();
             for(int i=0; i<size; i++){
                 SyntaxTree subTree = cloneTree.get(i);
-                subTree = getReplacedTree(subTree, argStrings, argNodes);
+                cloneTree.set(i, getReplacedTree(subTree, argStrings, argNodes));
             }
         }
         return cloneTree;
@@ -126,7 +125,7 @@ public class InlineFileProcessor {
             throw new Error("The function is not inline expandable: "+functionName);
         }
         List<String> argStrings = targetInfo.getArgStrings();
-        List<SyntaxTree> argNodes = Arrays.asList((SyntaxTree[])original.getSubTree());
+        List<SyntaxTree> argNodes = Arrays.asList((SyntaxTree[])original.get(Symbol.unique("args")).getSubTree());
         Set<List<AstType>> needTypes = typeSetListToListSet(argTypes);
         SyntaxTree expandedTree = targetInfo.get(needTypes);
         if(expandedTree == null){
@@ -134,11 +133,18 @@ public class InlineFileProcessor {
         }
         SyntaxTree result = getReplacedTree(expandedTree, argStrings, argNodes);
         //TEST PRINT ***************
+        /*
+        System.err.println("---------");
+        System.err.println("Expansion information");
+        System.err.println("---------");
         System.err.println("ORIGINAL:"+original.toString());
+        System.err.println("argTypes:"+argTypes.toString());
+        System.err.println("needTypes:"+needTypes.toString());
         System.err.println("targetInfo:"+targetInfo.toString());
         System.err.println("expandedTree:"+expandedTree.toString());
         System.err.println("result:"+result.toString());
         System.err.println("---------");
+        */
         return result;
     }
 

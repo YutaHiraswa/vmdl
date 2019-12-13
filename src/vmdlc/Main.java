@@ -76,7 +76,7 @@ public class Main {
                     throw new Error("Illigal option");
                 }
                 typeMapIndex = num;
-            } else if (opt.equals("--inline")) {
+            } else if (opt.equals("--preprocess")) {
                 outputMode = OutputMode.MakeInline;
             } else if (opt.equals("--useinline")) {
                 inlineExpansionFile = args[i++];
@@ -180,9 +180,6 @@ public class Main {
         String functionName = new ExternProcessVisitor().start(ast);
         if(outputMode != OutputMode.MakeInline){
             if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.vmInstruction)){
-                if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.makeInline)){
-                    ErrorPrinter.error("Function has annotations of \"vmInstruction\" and \"makeInline\"");
-                }
                 outputMode = OutputMode.Instruction;
             }else{
                 outputMode = OutputMode.Function;
@@ -192,7 +189,6 @@ public class Main {
         new DispatchVarCheckVisitor().start(ast);
         if(!outputMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);
         new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1], (inlineExpansionFile != null));
-        System.err.println("TYPECHECKRESULT:"+ast.toString());
 
         String program;
         if(outputMode == OutputMode.MakeInline){

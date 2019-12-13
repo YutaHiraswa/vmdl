@@ -919,16 +919,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             if(inlineExpansionFlag){
                 if(InlineFileProcessor.isInlineExpandable(functionName)){
-                    SyntaxTree expandedTree = InlineFileProcessor.inlineExpansion(node, argTypeList);
-                    if(expandedTree != node){
-                        //TEST PRINT ***************
-                        //NOTE: When function call node replaced for non function call node,
-                        //      node will be empty.
-                        System.err.println("Original: "+node);
-                        System.err.println("Expanded!: "+expandedTree);
-                        node.replace(expandedTree);
-                        System.err.println("Now Node change to...: "+node);
-                        visit(expandedTree, dict);
+                    SyntaxTree expandedNode = InlineFileProcessor.inlineExpansion(node, argTypeList);
+                    if(!expandedNode.equals(node)){
+                        node.addExpandedTreeCandidate(expandedNode);
+                        visit(expandedNode, dict);
+                    }else{
+                        node.setFailToExpansion();
                     }
                 }
             }
