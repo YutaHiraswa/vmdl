@@ -8,8 +8,11 @@
  */
 package vmdlc;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +44,17 @@ public class OperandSpecifications {
             this.insnName = insnName;
             this.operandTypes = operandTypes;
             this.behaviour = behaviour;
+        }
+
+        @Override
+        public String toString(){
+            StringBuilder builder = new StringBuilder();
+            builder.append(insnName);
+            builder.append(" (");
+            builder.append(String.join(",", operandTypes));
+            builder.append(") ");
+            builder.append(behaviour.toString().toLowerCase());
+            return builder.toString();
         }
     }
     List<OperandSpecificationRecord> spec;
@@ -220,6 +234,29 @@ public class OperandSpecifications {
 
     public VMDataTypeVecSet getAccept(String insnName, String[] paramNames) {
         return new OperandVMDataTypeVecSet(paramNames, this, insnName);
+    }
+
+    public void insertRecord(String insnName, String[] operandTypes, OperandSpecificationRecord.Behaviour behaviour){
+        spec.add(0, new OperandSpecificationRecord(insnName, operandTypes, behaviour));
+    }
+
+    public void write(FileWriter writer) throws IOException{
+        StringBuilder builder = new StringBuilder();
+        for(OperandSpecificationRecord record : spec){
+            builder.append(record.toString());
+            builder.append('\n');
+        }
+        writer.write(builder.toString());
+    }
+
+    public void write(String fileName) throws IOException{
+        try{
+            FileWriter writer = new FileWriter(new File(fileName));
+            write(writer);
+            writer.close();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
     }
 
     //Never used

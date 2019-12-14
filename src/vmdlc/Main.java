@@ -40,6 +40,8 @@ public class Main {
     static String operandSpecFile;
     static String insnDefFile;
     static String inlineExpansionFile;
+    static String functionDependencyFile = "./vmdl_workspace/dependency.ftd";
+    static String argumentSpecFile;
     static int typeMapIndex = 1;
     static OutputMode outputMode = OutputMode.Instruction;
 
@@ -80,6 +82,8 @@ public class Main {
                 outputMode = OutputMode.MakeInline;
             } else if (opt.equals("--useinline")) {
                 inlineExpansionFile = args[i++];
+            } else if (opt.equals("-A")) {
+                argumentSpecFile = args[i++];
             } else if (opt.equals("-i")) {
                 insnDefFile = args[i++];
             } else if (opt.startsWith("-X")) {
@@ -167,6 +171,10 @@ public class Main {
         if (insnDefFile != null)
             insnDef.load(insnDefFile);
 
+        OperandSpecifications funcSpec = new OperandSpecifications();
+        if (argumentSpecFile != null)
+            funcSpec.load(argumentSpecFile);
+        
         if (sourceFile == null)
             throw new Error("no source file is specified");
 
@@ -176,7 +184,9 @@ public class Main {
         SyntaxTree ast = parse(sourceFile);
 
         ErrorPrinter.setSource(sourceFile);
-        if(inlineExpansionFile != null) InlineFileProcessor.read(inlineExpansionFile, getGrammar());
+        if(inlineExpansionFile != null){
+            InlineFileProcessor.read(inlineExpansionFile, getGrammar());
+        }
         String functionName = new ExternProcessVisitor().start(ast);
         if(outputMode != OutputMode.MakeInline){
             if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.vmInstruction)){
@@ -188,13 +198,20 @@ public class Main {
         new DesugarVisitor().start(ast);
         new DispatchVarCheckVisitor().start(ast);
         if(!outputMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);
-        new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1], (inlineExpansionFile != null));
+        new TypeCheckVisitor().start(ast, opSpec,
+            TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1], (inlineExpansionFile != null), (functionDependencyFile != null), funcSpec);
 
         String program;
         if(outputMode == OutputMode.MakeInline){
             program = new InlineInfoVisitor().start(ast);
         }else{
             program = new AstToCVisitor().start(ast, opSpec, outputMode);
+        }
+        if(outputMode == OutputMode.MakeInline){
+            TypeDependencyProcessor.write(functionDependencyFile);
+        }
+        if(funcSpec != null){
+            funcSpec.write(argumentSpecFile);
         }
 
         System.out.println(program);

@@ -37,7 +37,9 @@ public class TypeDependencyProcessor {
 
     public static void write(String fileName) throws IOException{
         try{
-            write(new FileWriter(new File(fileName), true));
+            FileWriter writer = new FileWriter(new File(fileName), true);
+            write(writer);
+            writer.close();
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -128,6 +130,11 @@ public class TypeDependencyProcessor {
                 }
             }
             return builder.toString();
+        }
+
+        @Override
+        public String toString(){
+            return needFunctionTypeMap.toString();
         }
     }
 }
